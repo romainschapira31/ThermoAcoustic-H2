@@ -1,0 +1,15 @@
+fuel:
+  name: H2
+  mechanism: h2o2.yaml
+  equivalence_ratio: 0.9
+  T_fresh: 300.0
+  pressure: 101325.0
+
+geometry:
+  tube_length: 1.0
+  tube_diameter: 0.05
+  flame_position: 0.25
+
+flame_model:
+  n: 1.0
+  tau: 0.0013
