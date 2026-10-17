@@ -2,7 +2,7 @@ fuel:
   name: H2
   mechanism: h2o2.yaml
   equivalence_ratio: 0.9
-  T_fresh: 300.0
+  T_fresh: 298.15
   pressure: 101325.0
 
 geometry:

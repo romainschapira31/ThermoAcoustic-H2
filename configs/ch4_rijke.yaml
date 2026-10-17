@@ -2,7 +2,7 @@ fuel:
   name: CH4
   mechanism: gri30.yaml
   equivalence_ratio: 1.0
-  T_fresh: 300.0
+  T_fresh: 298.15
   pressure: 101325.0
 
 geometry:
