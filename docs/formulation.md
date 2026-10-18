@@ -127,9 +127,7 @@ is purely numerical (finite resolution of the frequency sweep, 1 Hz step
 over 1-1000 Hz) rather than a modeling limitation.
 
 This validates the acoustic-only building block of the network, isolated
-from any flame response. The full thermoacoustic model (coupled acoustics
-+ flame response) will be validated once the n-tau flame model is
-implemented (Section 3).
+from any flame response. The full thermoacoustic model (coupled acoustics + flame response) will be validated once the n-tau flame model is implemented (Section 3).
 
 ## 3. Flame response model
 
