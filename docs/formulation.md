@@ -81,8 +81,55 @@ no-dissociation estimate.
 
 ## 2. Acoustic model
 
-(1D linear acoustics, transfer matrix approach — to complete once
-`acoustics.py` is implemented)
+The acoustic field inside the duct network is described by 1D linear
+acoustics with no mean flow. At any point, the state is the pair (p, u):
+acoustic pressure and acoustic velocity. Each duct element maps the state
+at its inlet to the state at its outlet via a 2x2 transfer matrix:
+
+    [p]      [ cos(kL)        -i*Z*sin(kL) ] [p]
+    [u]_out =[ -i*sin(kL)/Z    cos(kL)     ] [u]_in
+
+where k = omega/c is the wavenumber, L the duct length, and Z = rho*c the
+characteristic acoustic impedance of the gas.
+
+Boundary conditions are expressed in the general form a*p + b*u = 0:
+- Closed end (rigid wall): u = 0, i.e. (a, b) = (0, 1)
+- Open end (idealized, no end correction, no radiation impedance): p = 0,
+  i.e. (a, b) = (1, 0)
+
+Eigenfrequencies of the network are found by propagating a state that
+satisfies the inlet boundary condition through all elements, and searching
+for frequencies at which the outlet boundary condition is also satisfied
+(characteristic equation). A frequency sweep is used to locate the minima
+of the characteristic value's magnitude.
+
+### Validation: closed-open duct
+
+The solver was validated on a simple closed-open duct (L = 1 m,
+c = 343 m/s), for which the analytical eigenfrequencies are known:
+
+f_n = (2n-1) * c / (4L), n = 1, 2, 3, ...
+
+| Mode | Numerical (Hz) | Analytical (Hz) | Relative error (%) |
+|---|---|---|---|
+| 1 | 86.0 | 85.75 | 0.292 |
+| 2 | 257.0 | 257.25 | 0.097 |
+| 3 | 429.0 | 428.75 | 0.058 |
+| 4 | 600.0 | 600.25 | 0.042 |
+| 5 | 772.0 | 771.75 | 0.032 |
+| 6 | 943.0 | 943.25 | 0.027 |
+
+![Acoustic resonance search for a closed-open duct](../results/figures/acoustics_validation.png)
+
+All six modes are recovered within 0.3% of the analytical values, confirming
+the correctness of the transfer-matrix implementation. The residual error
+is purely numerical (finite resolution of the frequency sweep, 1 Hz step
+over 1-1000 Hz) rather than a modeling limitation.
+
+This validates the acoustic-only building block of the network, isolated
+from any flame response. The full thermoacoustic model (coupled acoustics
++ flame response) will be validated once the n-tau flame model is
+implemented (Section 3).
 
 ## 3. Flame response model
 

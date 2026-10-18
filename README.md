@@ -58,6 +58,13 @@ Grid-independence was verified through a convergence study (34 → 139 → 253
 points). See `docs/formulation.md` for the full convergence table and
 discussion.
 
+### Acoustic network validation
+
+The transfer-matrix acoustic solver was validated against the analytical
+eigenfrequencies of a closed-open duct (L=1m, c=343 m/s): all 6 computed
+modes agree with theory within 0.3%. See `docs/formulation.md` for the
+full comparison table.
+
 ## Limitations
 
 This is a low-order model, not a high-fidelity LES — see `docs/formulation.md` for
