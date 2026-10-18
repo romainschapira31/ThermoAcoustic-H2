@@ -119,7 +119,7 @@ f_n = (2n-1) * c / (4L), n = 1, 2, 3, ...
 | 5 | 772.0 | 771.75 | 0.032 |
 | 6 | 943.0 | 943.25 | 0.027 |
 
-![Acoustic resonance search for a closed-open duct](../results/figures/acoustics_validation.png)
+<img src="../results/figures/acoustics_validation.png" alt="Acoustic resonance search for a closed-open duct" width="600">
 
 All six modes are recovered within 0.3% of the analytical values, confirming
 the correctness of the transfer-matrix implementation. The residual error
