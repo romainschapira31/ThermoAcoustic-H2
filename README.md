@@ -30,6 +30,15 @@ pip install -e .
 python scripts/validate_acoustics.py
 python main.py --config configs/ch4_rijke.yaml
 ```
+## Testing
+
+Unit tests cover the acoustic elements (transfer matrix, boundary
+conditions) and validate the solver's first eigenfrequency against the
+analytical value for a closed-open duct:
+
+```bash
+pytest tests/ -v
+```
 
 ## Results
 
