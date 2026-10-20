@@ -74,6 +74,27 @@ eigenfrequencies of a closed-open duct (L=1m, c=343 m/s): all 6 computed
 modes agree with theory within 0.3%. See `docs/formulation.md` for the
 full comparison table.
 
+### Thermoacoustic coupling (flame + acoustics)
+
+A compact flame element (Crocco's n-tau model) was coupled to the
+acoustic network, turning the eigenvalue problem complex: eigenfrequencies
+now carry a growth rate sigma = -Im(omega), with sigma > 0 indicating
+an unstable (growing) mode.
+
+**Consistency check**: setting n=0 (flame does not respond to acoustic
+perturbations) exactly recovers the acoustic-only eigenfrequency (85.75 Hz,
+zero growth rate), validating the implementation.
+
+**Stability map**: a full (n, tau) sweep reveals a clear unstable region at
+low time delay (tau < ~4-5 ms), consistent with the Rayleigh criterion —
+explicitly verified by computing the Rayleigh index for a stable and an
+unstable case, with matching signs in both.
+
+<img src="results/figures/stability_map_n_tau.png" alt="Stability map in the (n, tau) plane" width="600">
+
+See `docs/formulation.md` (Section 3) for the full derivation, the
+preliminary 1D sweeps, and the Rayleigh criterion verification.
+
 ## Limitations
 
 This is a low-order model, not a high-fidelity LES — see `docs/formulation.md` for
