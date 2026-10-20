@@ -14,9 +14,9 @@ hydrogen as an alternative fuel for aviation gas turbines.
 ## Architecture
 
 - `src/thermoacoustic/acoustics.py` — acoustic network elements (ducts, junctions, boundaries)
-- `src/thermoacoustic/flame.py` — flame response models (n-tau, Cantera-based calibration)
+- `src/thermoacoustic/flame.py` — flame response models (n-tau / Crocco's law)
 - `src/thermoacoustic/solver.py` — network assembly and eigenvalue solver
-- `src/thermoacoustic/stability.py` — Rayleigh criterion and fuel comparison tools
+- `src/thermoacoustic/stability.py` — (planned) Rayleigh criterion and fuel comparison tools
 
 ## Installation
 
@@ -27,8 +27,15 @@ pip install -e .
 ## Usage
 
 ```bash
+# Flame calibration (Cantera) — validates flame speed and adiabatic temperature
+python scripts/cantera_reference_case.py
+
+# Acoustic-only validation — validates eigenfrequencies of a closed-open duct
 python scripts/validate_acoustics.py
-python main.py --config configs/ch4_rijke.yaml
+
+# Full thermoacoustic coupling — n-tau flame model, stability map, Rayleigh check
+python scripts/validate_flame_coupling.py
+
 ```
 ## Testing
 
