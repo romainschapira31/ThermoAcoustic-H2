@@ -1,3 +1,4 @@
+import cantera as ct
 import numpy as np
 from abc import ABC, abstractmethod
 from thermoacoustic.acoustics import AcousticElement
@@ -55,5 +56,43 @@ class CompactFlame(AcousticElement):
         T = np.array([[ 1, 0],[ 0, 1 + self.coupling_factor * self.flame_model.heat_release_response(omega)]], dtype=np.complex128)
         
         return T
+
+class FlameCalibrator:
+    """
+    """
+    def __init__(self, fuel, oxidizer, n, characteristic_distance, mechanism = 'gri30.yaml'):
+        """
+        """
+        self.T_in = 298.15
+        self.P_in = 101325
+        self.fuel = fuel
+        self.oxidizer = oxidizer
+        self.n = n
+        self.characteristic_distance = characteristic_distance
+        self.width = 0.03
+        self.refine_criteria = {"ratio": 3, "slope": 0.05, "curve": 0.05}
+        self.mechanism = mechanism
         
-         
+    def compute_flame_velocity(self, phi):
+        """
+        """
+        
+        gas = ct.Solution(self.mechanism)
+        gas.TP = self.T_in, self.P_in
+        gas.set_equivalence_ratio(phi, self.fuel, self.oxidizer)
+        flame = ct.FreeFlame(gas, width = self.width)
+        flame.set_refine_criteria(**self.refine_criteria)
+        flame.solve(loglevel=0, auto=True)
+        flame_speed = flame.velocity[0]
+        return flame_speed
+    
+    def calibrate(self, phi):
+        """
+        """
+        flame_speed = self.compute_flame_velocity(phi)
+        tau = self.characteristic_distance / flame_speed
+        flame_model = NTauFlame(self.n, tau)
+        return flame_model
+        
+        
+        

@@ -127,7 +127,7 @@ is purely numerical (finite resolution of the frequency sweep, 1 Hz step
 over 1-1000 Hz) rather than a modeling limitation.
 
 This validates the acoustic-only building block of the network, isolated
-from any flame response. The full thermoacoustic model (coupled acoustics + flame response) will be validated once the n-tau flame model is implemented (Section 3).
+from any flame response. The full thermoacoustic model (coupled acoustics + flame response) is validated in Section 3.
 
 ## 3. Flame response model and thermoacoustic coupling
 
@@ -182,67 +182,133 @@ This confirms that the CompactFlame element reduces exactly to a neutral
 (non-coupling) element when the flame's heat release response is switched
 off, validating the implementation.
 
-### 3.4 Preliminary 1D parameter sweeps
+### 3.4 Eigenvalue tracking: a methodological caveat
 
-Before exploring the full (n, tau) parameter space, two 1D sweeps were
-performed as an exploratory step, at fixed geometry (tube_length=1m,
-flame_position=0.25m).
+The characteristic equation of the coupled system is transcendental: it
+admits infinitely many roots in the complex plane, one per acoustic mode,
+further multiplied by the exp(-i*omega*tau) delay term. A Newton solver
+returns whichever root lies in the basin of attraction of its initial
+guess, with no guarantee that successive solves stay on the same physical
+branch.
 
-<img src="../results/figures/growth_rate_vs_n.png" alt="Growth rate vs n, tau=2ms" width="500">
+An initial attempt to build a 2D stability map over the (n, tau) plane
+failed for this reason. Sweeping the grid with nearest-neighbour
+continuation produced a map that was smooth in appearance and converged at
+every point, but was in fact a mosaic of different modes: beyond n ~ 0.9
+the solver had silently switched to a spurious branch around 45 Hz,
+unrelated to the fundamental mode of the underlying acoustic system
+(85.75 Hz).
 
-At fixed tau=2ms, the growth rate remains negative (stable) over the
-whole tested range of n (0 to 20), with a minimum (most stable point)
-around n=1.5-2.
+The discrepancy was detected by cross-checking the map against a direct
+1D sweep along n at fixed tau:
 
-<img src="../results/figures/growth_rate_vs_tau.png" alt="Growth rate vs tau, n=1" width="500">
-
-At fixed n=1, the growth rate also remains negative over the tested range
-of tau (0 to 12ms), though a non-monotonic trend is visible.
-
-Neither 1D sweep revealed an unstable configuration: as predicted by the
-Rayleigh criterion, instability depends on the phase relationship between
-heat release and pressure (controlled jointly by n and tau), not on
-either parameter in isolation. This motivated the full 2D exploration
-below.
-
-### 3.5 Stability map (n, tau)
-
-A full 2D sweep over n in [0.1, 3] and tau in [0.1, 15] ms was performed,
-solving for the fundamental mode's complex eigenfrequency at each (n,
-tau) combination.
-
-<img src="../results/figures/stability_map_n_tau.png" alt="Stability map in the (n, tau) plane" width="600">
-
-This reveals a clear unstable region (sigma > 0) at low tau (below ~4-5
-ms) across most of the tested range of n, separated from a stable region
-at higher tau by a sharp, nearly vertical boundary. This structure is
-consistent with the physical mechanism described by the Rayleigh
-criterion (phase relationship between heat release and pressure
-fluctuations), confirmed explicitly in Section 3.6.
-
-### 3.6 Rayleigh criterion verification
-
-To confirm that the sign of the growth rate obtained from the eigenvalue
-solver is physically consistent with the Rayleigh criterion, the
-Rayleigh index (proportional to Re(p'* x Q') at the flame location) was
-computed directly for two representative cases and compared to the
-sign of the growth rate:
-
-| Case (n, tau) | Growth rate sigma [1/s] | Rayleigh index (sign) | Signs match |
+| n | Map: f [Hz] | Map: sigma [1/s] | Direct: sigma [1/s] |
 |---|---|---|---|
-| (0.1, 7 ms) — unstable region | +7.69 | +0.0001 | Yes |
-| (1.0, 2 ms) — stable region | -69.20 | -0.0006 | Yes |
+| 0.10 | 87.62 | -5.09 | -5.08 |
+| 0.51 | 98.08 | -6.25 | -7.41 |
+| 0.93 | (rejected) | — | +35.88 |
+| 1.96 | 47.06 | -174.72 | +115.67 |
+| 3.00 | 41.64 | -144.60 | +167.54 |
 
-In both cases, the sign of the growth rate matches the sign of the
-Rayleigh index, confirming that the eigenvalue solver correctly captures
-the phase relationship between heat release and pressure fluctuations
-predicted by the Rayleigh criterion: heat release in phase with pressure
-(positive Rayleigh index) drives the instability, consistent with the
-physical mechanism underlying thermoacoustic instabilities.
+The two methods agree to within rounding at low n, then diverge entirely.
+The frequency column identifies the cause unambiguously: the map drifts
+from 87 Hz to 45 Hz, i.e. onto a different branch.
 
-## 4. Stability criterion
+The 2D map was therefore discarded. All results below are obtained by
+direct 1D sweeps with continuation along a single parameter, and the real
+part of omega is monitored throughout as a branch-tracking check.
 
-(Rayleigh criterion — to complete)
+A rigorous 2D map would require a method that does not rely on local
+root-finding — for instance contour-integral eigenvalue methods, or
+recasting the problem in matrix eigenvalue form. This is outside the scope
+of a low-order study.
+
+### 3.5 Flame calibration from chemistry
+
+The time delay tau is estimated as a convective transit time between the
+perturbation location and the flame front:
+
+    tau = d / S_L
+
+where S_L is the laminar flame speed computed with Cantera (Section 1) and
+d is a characteristic convective length scale. With d = 10 mm:
+
+| Fuel | phi | S_L [m/s] | tau [ms] |
+|---|---|---|---|
+| CH4/air | 1.0 | 0.38 | 26.64 |
+| H2/air | 0.9 | 2.00 | 4.99 |
+
+The hydrogen flame, being roughly five times faster, yields a delay five
+times shorter. This is the only quantity in the flame model that is
+derived from chemistry; the interaction index n is not calibrated and is
+treated as a free parameter below.
+
+### 3.6 Fuel comparison: growth rate versus interaction index
+
+At each fuel's calibrated tau, the growth rate of the fundamental mode was
+computed over n in [0.1, 3.0] by direct root-finding with continuation.
+
+<img src="../results/figures/fuel_comparison_sigma_vs_n.png" alt="Growth rate vs interaction index for CH4 and H2" width="600">
+
+Both fuels become unstable above a threshold interaction index. The
+thresholds and the subsequent behaviour differ markedly:
+
+| Quantity | CH4/air | H2/air |
+|---|---|---|
+| tau [ms] | 26.64 | 4.99 |
+| Instability threshold (sigma = 0) | n ~ 0.37 | n ~ 0.60 |
+| sigma at n = 3 [1/s] | +58.4 | +167.5 |
+| Frequency range over the sweep [Hz] | 86.9 - 97.1 | 87.6 - 114.6 |
+
+Hydrogen crosses into instability at a *higher* interaction index than
+methane in this configuration, but once unstable its growth rate rises
+roughly three times faster. The curves cross near n ~ 0.85. Expressed in
+engineering terms: hydrogen is not more prone to instability here, but the
+instability it produces is considerably more violent.
+
+<img src="../results/figures/fuel_comparison_frequency_vs_n.png" alt="Mode frequency along the sweep" width="600">
+
+The frequency plot is the branch-tracking check: both curves start near
+the acoustic-only eigenfrequency (85.75 Hz) and vary smoothly and
+monotonically, confirming that the solver remained on the fundamental mode
+throughout. Hydrogen shifts the mode frequency more strongly (up to
+115 Hz) than methane (up to 97 Hz), consistent with its stronger coupling.
+
+### 3.7 Rayleigh criterion verification
+
+The Rayleigh index, proportional to Re(p'* x Q') at the flame location,
+was computed at n = 2.0 for both calibrated flames and compared to the
+sign of the growth rate obtained from the eigenvalue solver:
+
+| Case | sigma [1/s] | Rayleigh index | Signs match |
+|---|---|---|---|
+| H2/air, n = 2.0 | +114.62 | +0.00066 | Yes |
+| CH4/air, n = 2.0 | +46.65 | +0.00030 | Yes |
+
+Both cases are unstable at n = 2, and in both the Rayleigh index is
+positive: heat release is in phase with pressure, feeding the oscillation.
+The eigenvalue solver and the Rayleigh criterion agree, as they must for a
+linear system.
+
+### 3.8 Limitations
+
+Three assumptions limit the quantitative reach of these results:
+
+- **No damping.** The open end is idealized (p = 0, no radiation
+  impedance) and no viscous or thermal losses are modelled. With no
+  dissipation to oppose it, the flame source term alone sets the stability
+  boundary, which is why both fuels eventually become unstable. Realistic
+  losses would raise both thresholds and could change their ordering.
+- **Uniform mean temperature.** Both ducts use the same speed of sound
+  and density, whereas in reality the temperature jumps from ~300 K to
+  ~2230 K across the flame (a factor ~2.7 on c, ~7 on rho). This is a
+  significant simplification of the acoustic field downstream of the flame.
+- **n and d are not calibrated.** The interaction index is swept as a free
+  parameter rather than derived from physics, and the convective length
+  scale d entering tau is an order-of-magnitude estimate. The absolute
+  position of the stability thresholds therefore carries no quantitative
+  weight; only the comparison between the two fuels, computed with
+  identical assumptions, is meaningful.
 
 
 ## References

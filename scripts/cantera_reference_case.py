@@ -21,7 +21,7 @@ flame = ct.FreeFlame(gas, width = width)
 
 flame.set_refine_criteria(**refine_criteria)
 
-flame.solve(loglevel=1, auto=True)
+flame.solve(loglevel=0, auto=True)
 
 flame_speed = flame.velocity[0]
 T_adiabatic = flame.T[-1]

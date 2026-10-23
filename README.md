@@ -81,26 +81,41 @@ eigenfrequencies of a closed-open duct (L=1m, c=343 m/s): all 6 computed
 modes agree with theory within 0.3%. See `docs/formulation.md` for the
 full comparison table.
 
-### Thermoacoustic coupling (flame + acoustics)
 
-A compact flame element (Crocco's n-tau model) was coupled to the
-acoustic network, turning the eigenvalue problem complex: eigenfrequencies
-now carry a growth rate sigma = -Im(omega), with sigma > 0 indicating
-an unstable (growing) mode.
 
-**Consistency check**: setting n=0 (flame does not respond to acoustic
-perturbations) exactly recovers the acoustic-only eigenfrequency (85.75 Hz,
-zero growth rate), validating the implementation.
+### Thermoacoustic coupling and fuel comparison
 
-**Stability map**: a full (n, tau) sweep reveals a clear unstable region at
-low time delay (tau < ~4-5 ms), consistent with the Rayleigh criterion —
-explicitly verified by computing the Rayleigh index for a stable and an
-unstable case, with matching signs in both.
+A compact flame element (Crocco's n-tau model) is coupled to the acoustic
+network, making the eigenvalue problem complex: each mode carries a growth
+rate sigma = -Im(omega), with sigma > 0 indicating instability.
 
-<img src="results/figures/stability_map_n_tau.png" alt="Stability map in the (n, tau) plane" width="600">
+The time delay tau is calibrated from Cantera laminar flame speeds
+(tau = d / S_L, with d = 10 mm):
 
-See `docs/formulation.md` (Section 3) for the full derivation, the
-preliminary 1D sweeps, and the Rayleigh criterion verification.
+| Fuel | phi | S_L [m/s] | tau [ms] |
+|---|---|---|---|
+| CH4/air | 1.0 | 0.38 | 26.64 |
+| H2/air | 0.9 | 2.00 | 4.99 |
+
+Sweeping the interaction index n at each fuel's calibrated tau:
+
+<img src="results/figures/fuel_comparison_sigma_vs_n.png" alt="Growth rate vs interaction index for CH4 and H2" width="600">
+
+Both fuels become unstable above a threshold. Hydrogen crosses later
+(n ~ 0.60 vs n ~ 0.37 for methane) but grows roughly three times faster
+once unstable (+167 vs +58 1/s at n = 3). The Rayleigh index was computed
+independently and agrees in sign with the eigenvalue solver in both cases.
+
+**Methodological note**: an initial attempt at a 2D (n, tau) stability map
+was discarded. Newton's method on this transcendental characteristic
+equation does not guarantee branch tracking, and the map silently drifted
+onto a spurious mode beyond n ~ 0.9. The error was found by cross-checking
+against direct 1D sweeps, which are used for all results above. See
+`docs/formulation.md` (Section 3.4) for the full diagnosis.
+
+See `docs/formulation.md` (Section 3) for the derivation, the calibration,
+and the limitations — in particular the absence of damping and the uniform
+mean temperature assumption.
 
 ## Limitations
 
