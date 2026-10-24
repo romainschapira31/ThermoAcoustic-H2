@@ -46,6 +46,8 @@ python scripts/validate_flame_coupling.py
 
 # Sensitivity of the fuel comparison to the convective length d
 python scripts/phase_sensitivity.py
+# Sensitivity of the computed flame speeds to numerical and transport settings
+python scripts/transport_check.py
 ```
 
 The two study scripts (`validate_flame_coupling.py` and
@@ -78,21 +80,31 @@ p = 101325 Pa, matching the conditions of the literature references.
 
 | Quantity | This work | Reference |
 |---|---|---|
-| Laminar flame speed | 0.375 m/s | 0.36 ± 0.017 m/s (Vagelopoulos & Egolfopoulos, 1998) |
-| Adiabatic flame temperature | 2229.5 K | 2224.3 K (same mechanism and software, arXiv:2503.11826) |
+| Laminar flame speed, CH4/air | 0.375 m/s | 0.36 ± 0.017 m/s (compilation of twelve studies, FFCM-1) |
+| Laminar flame speed, H2/air | 2.311 m/s | 2.11 ± 0.11 m/s (compilation of nine studies, FFCM-2) |
+| Adiabatic flame temperature, CH4/air | 2229.5 K | 2224.3 K (same mechanism and software, arXiv:2503.11826) |
 
-> Vagelopoulos, C. M., & Egolfopoulos, F. N. (1998). Direct experimental
-> determination of laminar flame speeds. *Proceedings of the Combustion
-> Institute*, 27, 513-519. Value as tabulated in the FFCM-1 flame speed
-> compilation (the original paper was not accessed).
+> The reference flame speeds are consensus values compiled by the Stanford
+> FFCM initiative from twelve (CH4) and nine (H2) experimental studies. The
+> original papers were not accessed; see `docs/formulation.md`, References
+> 1 and 5.
 
-The computed flame speed is 4.3% above the measurement (+1.5 cm/s), within
-its quoted uncertainty. The adiabatic temperature differs by 0.23% from an
+The computed methane flame speed is 4.3% above the compiled measurement
+(+1.5 cm/s), within its uncertainty. The hydrogen flame speed is 9.5% above
+(+20 cm/s), outside it. The gap is not numerical: mesh refinement and domain
+size change it by less than 0.5%, and the full GRI-Mech 3.0 gives the same
+value. It comes from the transport model: with multicomponent transport and
+thermal diffusion, the computed value is 1.1% below the measurement
+(`scripts/transport_check.py`). The project keeps Cantera's default
+transport for both fuels. The adiabatic temperature differs by 0.23% from an
 independent calculation using the same mechanism and software, which checks
 the implementation rather than the mechanism. Grid independence was verified
 through a convergence study (34 → 139 → 253 points); see
-`docs/formulation.md` for the full table. The hydrogen flame speed is not
-compared with a measurement.
+`docs/formulation.md` for the full table.
+
+The flame-speed uncertainty moves the stability thresholds by tens of
+percent (`docs/formulation.md`, Section 3.8), but at d = 10 mm hydrogen
+still crosses later than methane for all the flame speeds tested.
 
 ### Acoustic network verification
 
@@ -175,9 +187,10 @@ This is a low-order model, and its quantitative reach is limited:
   (only their product matters) and the convective length d are not derived
   from physics. Absolute thresholds carry no quantitative weight, and the
   fuel comparison depends on d.
-- **Unvalidated hydrogen flame speed, one equivalence ratio.** Only phi = 1.0
-  is reported, and the hydrogen flame speed is not compared with a
-  measurement.
+- **Flame speed from a simple transport model, one equivalence ratio.** With
+  Cantera's default transport, the hydrogen flame speed is 9.5% above the
+  measurement; a more complete transport model removes the gap. Only
+  phi = 1.0 is reported.
 - **No external validation of the coupled model.** It is verified against
   analytical limits but not compared with a published or measured
   thermoacoustic case.

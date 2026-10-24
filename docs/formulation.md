@@ -6,9 +6,9 @@ building block has passed, and the limits of what the results can claim.
 Two kinds of checks are distinguished throughout. **Verification** asks
 whether the code solves the model's equations correctly (analytical
 solutions, limiting cases, convergence). **Validation** asks whether the
-model represents reality (measurements, published results). The methane
-flame speed is validated against a measurement; the hydrogen flame speed is
-not. The acoustic and coupled solvers are verified against analytical
+model represents reality (measurements, published results). The flame speeds are compared with compiled measurements: methane agrees
+within the quoted uncertainty, and the 9.5 % excess of hydrogen is explained
+by the transport model (Section 1). The acoustic and coupled solvers are verified against analytical
 results. The coupled model as a whole has not been validated against an
 external thermoacoustic reference.
 
@@ -59,17 +59,43 @@ global energy-balance quantity, nearly independent of the local
 discretisation, whereas S_L depends on gradients and reaction rates inside
 the thin flame front, which require a finer mesh.
 
-### Validation against a measurement
+### Comparison with measurements
 
-The computed S_L = 0.375 m/s is compared with the measurement of
-Vagelopoulos & Egolfopoulos (1998), 0.36 ± 0.017 m/s, obtained with the
-counterflow twin-flame technique for CH4/air at φ = 1.0, 298 K, 1 atm
-(Reference 1). The computed value is 4.3 % higher, i.e. +1.5 cm/s, which is
-within the quoted measurement uncertainty. The cause of the small residual
-is not investigated here.
+**Methane.** For CH4/air at φ = 1.0, 298 K and 1 atm, a compilation of
+twelve experimental studies gives S_L = 0.36 ± 0.017 m/s (Reference 1, which
+includes Vagelopoulos & Egolfopoulos, 1998). The computed value, 0.375 m/s,
+is 4.3 % higher (+1.5 cm/s), within the quoted uncertainty.
 
-The hydrogen flame speed used in Section 3 (2.311 m/s at φ = 1.0) is not
-compared with a measurement in this work.
+**Hydrogen.** For H2/air at φ = 1.0, 298 K and 1 atm, a compilation of nine
+studies gives S_L = 2.112 ± 0.110 m/s (Reference 5). The computed value,
+2.311 m/s, is 9.5 % higher (+20 cm/s), 1.8 times the quoted uncertainty.
+
+Several explanations were tested (`scripts/transport_check.py`):
+
+| Setting | CH4/air S_L [m/s] | H2/air S_L [m/s] |
+|---|---|---|
+| Project calculation (mixture-averaged transport) | 0.375 | 2.311 |
+| Stricter refinement criteria | 0.374 | 2.311 |
+| Wider domain (0.10 m) | 0.376 | 2.313 |
+| Multicomponent transport | 0.377 | 2.270 |
+| Multicomponent transport + thermal diffusion (Soret) | 0.372 | 2.088 |
+| Compiled measurement | 0.360 ± 0.017 | 2.112 ± 0.110 |
+
+Numerical settings change S_L by less than 0.5 %, and `h2o2.yaml` (the
+hydrogen-oxygen submechanism of GRI-Mech 3.0) gives the same value as the
+full GRI-Mech 3.0 (2.311 m/s), so the gap is neither a resolution nor a
+mechanism-size effect. The transport model is what matters for hydrogen:
+with multicomponent transport and thermal diffusion, the computed value is
+1.1 % below the measurement, within its uncertainty. Hydrogen is very light
+and diffuses much faster than the other species, which is the likely reason
+for this sensitivity. For methane, the transport model changes S_L by about
+1 %. Only one mechanism was tested.
+
+The project keeps Cantera's default mixture-averaged transport for both
+fuels, so that they are treated identically. The effect of the more complete
+model on the stability thresholds is given in Section 3.8. The 0.15 K
+difference between 298.0 K (compilations) and 298.15 K (calculations)
+changes S_L by less than 0.1 %.
 
 ### Cross-check of the adiabatic temperature
 
@@ -237,7 +263,7 @@ taken as 10 mm for both fuels.
 | CH4/air | 1.0 | 0.375 | 26.64 |
 | H2/air | 1.0 | 2.311 | 4.33 |
 
-The ratio τ(CH4)/τ(H2) = S_L(H2)/S_L(CH4) = 6.2 is fixed by the chemistry
+The ratio τ(CH4)/τ(H2) = S_L(H2)/S_L(CH4) = 6.2 (5.9 with the measured flame speeds) is fixed by the chemistry
 and does not depend on d, since d is common to both fuels. Both fuels are
 computed at the same equivalence ratio, and the configuration check refuses
 a comparison at different ones. S_L is the only quantity derived from
@@ -345,6 +371,22 @@ What does not depend on d: the delay ratio of 6.2 set by the chemistry, the
 phase mechanism ωτ = mπ, and the exact threshold formula. A ranking would
 require a calibrated d or a measured flame transfer function.
 
+**Effect of the flame-speed discrepancy.** The computed flame speeds differ
+from the measured ones (Section 1), and τ = d / S_L inherits the difference.
+At d = 10 mm, the threshold n_c given by the exact formula of Section 3.6 is:
+
+| Fuel | Computed S_L → n_c | Complete transport S_L → n_c | Measured S_L → n_c | Measured S_L ± uncertainty |
+|---|---|---|---|---|
+| CH4/air | 0.375 m/s → 0.369 | 0.372 m/s → 0.330 | 0.360 m/s → 0.206 | unstable at small n to 0.385 |
+| H2/air | 2.311 m/s → 1.029 | 2.088 m/s → 0.736 | 2.112 m/s → 0.770 | 0.598 to 0.920 |
+
+"Complete transport" is the multicomponent model with thermal diffusion. The
+flame-speed discrepancy alone moves the thresholds by tens of percent, so
+absolute thresholds carry no quantitative weight. At d = 10 mm the order of
+the fuels is unchanged for all the flame speeds tested: the lowest hydrogen
+threshold (0.60) stays above the highest methane one (0.39). As shown above,
+this does not hold for other values of d.
+
 ### 3.9 Rayleigh criterion check
 
 The Rayleigh index Re(p'* · Q') was computed at the flame location for the
@@ -376,9 +418,11 @@ test suite.
   not derived from physics. d controls the phase of the flame response and
   hence the stability order of the fuels (Section 3.8). Absolute thresholds
   carry no quantitative weight.
-- **Unvalidated hydrogen flame speed, one equivalence ratio.** The hydrogen
-  S_L is not compared with a measurement, and only φ = 1.0 is reported;
-  thresholds depend on φ through S_L.
+- **Flame speed from a simple transport model, one equivalence ratio.** With
+  Cantera's default transport, the hydrogen S_L is 9.5 % above the
+  measurement, and a more complete transport model removes the gap
+  (Section 1). The calibration keeps the default for both fuels; switching
+  would shift the thresholds (Section 3.8). Only φ = 1.0 is reported.
 - **Simple flame response.** A single compact flame with a frequency-
   independent gain n and a pure delay τ. A measured transfer function would
   have a frequency-dependent gain and phase.
@@ -389,11 +433,12 @@ test suite.
 
 ## References
 
-1. Vagelopoulos, C. M., & Egolfopoulos, F. N. (1998). Direct experimental
-   determination of laminar flame speeds. *Proceedings of the Combustion
-   Institute*, 27, 513–519. The value 0.36 ± 0.017 m/s is taken from the
-   FFCM-1 flame speed target compilation (H. Wang group, Stanford), which
-   tabulates this measurement; the original paper was not accessed.
+1. Foundational Fuel Chemistry Model Version 1.0 (FFCM-1), flame speed
+   target `fls_27b` (H. Wang group, Stanford): laminar flame speed of
+   CH4/air at φ = 1.0, 298 K, 1 atm, 36 ± 1.7 cm/s (σ), compiled from twelve
+   experimental studies, among them Vagelopoulos, C. M., & Egolfopoulos, F.
+   N. (1998), *Proceedings of the Combustion Institute*, 27, 513–519. The
+   original papers were not accessed.
 2. Adiabatic flame temperatures for oxy-methane, oxy-hydrogen, air-methane,
    and air-hydrogen stoichiometric combustion using the NASA CEARUN tool,
    GRI-Mech 3.0 reaction mechanism, and Cantera Python package.
@@ -402,3 +447,10 @@ test suite.
    (ignite.byu.edu). Complete-combustion calculation for methane/air at
    298.15 K using the thermodynamic data of Turns (Reference 4).
 4. Turns, S. R. *An Introduction to Combustion: Concepts and Applications.*
+5. Foundational Fuel Chemistry Model Version 2 (FFCM-2), validation page
+   `fls_H2_1_5` (H. Wang group, Stanford): laminar flame speed of H2/air at
+   φ = 1.0, 298 K, 1 atm, 211.17 ± 10.99 cm/s, compiled from nine
+   experimental studies (Tse et al. 2000; Aung et al. 1997; Vagelopoulos et
+   al. 1994; Tang et al. 2008; Hu et al. 2009; Bradley et al. 2007;
+   Lamoureux et al. 2003; Taylor 1991; Huang et al. 2006). The original
+   papers were not accessed.
