@@ -75,6 +75,22 @@ class FlameCalibrator:
         self.refine_criteria = {"ratio": 3, "slope": 0.05, "curve": 0.05}
         self.mechanism = mechanism
         
+    @classmethod
+    def from_config(cls, cfg):
+        """Build a calibrator from a fuel configuration (see thermoacoustic.config)."""
+        fuel = cfg["fuel"]
+        return cls(
+            fuel=fuel["name"],
+            oxidizer=fuel["oxidizer"],
+            characteristic_distance=cfg["flame_model"]["characteristic_distance"],
+            mechanism=fuel["mechanism"],
+            T_in=fuel["T_fresh"],
+            P_in=fuel["pressure"],
+        )
+    
+    
+
+        
     def compute_flame_velocity(self, phi):
         """
         """

@@ -48,6 +48,8 @@ python scripts/validate_flame_coupling.py
 python scripts/phase_sensitivity.py
 # Sensitivity of the computed flame speeds to numerical and transport settings
 python scripts/transport_check.py
+# Eigenmode spectrum: stability of the first six modes
+python scripts/mode_spectrum.py
 ```
 
 The two study scripts (`validate_flame_coupling.py` and
@@ -130,7 +132,7 @@ with S_L from Cantera and d = 10 mm, for both fuels at phi = 1.0:
 The ratio of the two delays (6.2) is fixed by the chemistry. The
 interaction index n and the length d are **not** calibrated.
 
-**Exact stability threshold.** A neutral mode requires omega·tau = m·pi,
+**Exact stability threshold (fundamental mode).** A neutral mode requires omega·tau = m·pi,
 which gives the critical interaction index in closed form. The solver
 reproduces it to the digits shown:
 
@@ -146,7 +148,7 @@ Sweeping n at each fuel's calibrated tau gives:
 
 <img src="results/figures/fuel_comparison_sigma_vs_n.png" alt="Growth rate vs interaction index for CH4 and H2" width="600">
 
-Both fuels become unstable above their threshold. At d = 10 mm, hydrogen
+The fundamental mode of both fuels becomes unstable above its threshold. At d = 10 mm, hydrogen
 crosses later (n = 1.03 against 0.37 for methane) but its growth rate then
 rises faster: it overtakes methane's above n ≈ 1.3 and reaches +169 against
 +58 1/s at n = 3. The frequency of the tracked mode stays smooth and
@@ -154,6 +156,18 @@ monotonic along both sweeps, confirming that the solver remains on the
 fundamental mode:
 
 <img src="results/figures/fuel_comparison_frequency_vs_n.png" alt="Mode frequency along the sweep" width="600">
+
+**Higher modes.** These thresholds are those of the fundamental mode. With a
+constant gain and no damping, higher modes become unstable earlier: at
+d = 10 mm methane is unstable from the smallest n tested through its 2nd,
+3rd and 5th modes, and hydrogen first through its 4th mode (600 Hz) at
+n = 0.84.
+
+<img src="results/figures/mode_spectrum.png" alt="Eigenmode spectrum at n = 1" width="600">
+
+Real flames respond less at high frequency and losses grow with frequency, so
+these high-frequency instabilities are probably overstated; see
+`docs/formulation.md`, Section 3.9.
 
 **What does not carry over.** These statements hold for d = 10 mm. The
 order in which the two fuels become unstable depends on d: at d = 7.5 mm
@@ -194,6 +208,9 @@ This is a low-order model, and its quantitative reach is limited:
 - **No external validation of the coupled model.** It is verified against
   analytical limits but not compared with a published or measured
   thermoacoustic case.
+- **Fundamental-mode thresholds.** Higher modes become unstable earlier in
+  this model (constant gain, no damping), so the reported thresholds are
+  those of the fundamental mode, not of the system.
 
 See `docs/formulation.md` for the derivation, the calibration, and the
 complete list of assumptions.

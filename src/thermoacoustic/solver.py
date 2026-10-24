@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import newton
 
 
 class ThermoAcousticNetwork():
@@ -46,3 +47,29 @@ class ThermoAcousticNetwork():
         p_out, u_out = state
 
         return a_out * p_out + b_out * u_out
+
+
+def track_mode(characteristic, parameters, omega_start, max_step=10.0):
+    """Follow one eigenmode along a parameter sweep.
+
+    characteristic(p) returns the function omega -> residual of the network at
+    parameter value p. The root at the first value is searched from
+    omega_start; each following root is searched from the previous one.
+
+    A root that moves by more than max_step [rad/s] between two consecutive
+    parameter values is taken to be a jump onto another branch: the mode is
+    then no longer followed and the remaining entries are NaN, as they are
+    when Newton's method fails to converge.
+    """
+    omegas = np.full(len(parameters), np.nan, dtype=complex)
+    guess = omega_start
+    for i, p in enumerate(parameters):
+        try:
+            root = newton(characteristic(p), guess, maxiter=100)
+        except RuntimeError:
+            break
+        if i > 0 and abs(root - guess) > max_step:
+            break
+        omegas[i] = root
+        guess = root
+    return omegas

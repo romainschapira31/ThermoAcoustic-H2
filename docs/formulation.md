@@ -324,12 +324,13 @@ computed over n in [0.1, 3.0] by direct root-finding with continuation.
 | Quantity | CH4/air | H2/air |
 |---|---|---|
 | τ [ms] | 26.64 | 4.33 |
-| Instability threshold n_c (exact, Section 3.6) | 0.369 | 1.029 |
+| Fundamental-mode threshold n_c (exact, Section 3.6) | 0.369 | 1.029 |
 | Frequency at threshold [Hz] | 93.8 | 115.6 |
-| σ at n = 3 [1/s] | +58.4 | +168.6 |
+| Fundamental-mode σ at n = 3 [1/s] | +58.4 | +168.6 |
 | Frequency range over the sweep [Hz] | 86.9 – 97.1 | 87.2 – 127.5 |
 
-Both fuels become unstable above a threshold. The threshold of hydrogen is
+The fundamental mode of both fuels becomes unstable above a threshold
+(higher modes are discussed in Section 3.9). The threshold of hydrogen is
 about 2.8 times that of methane, but once unstable its growth rate rises
 faster: it exceeds the growth rate of methane above n ≈ 1.3 and is 2.9 times
 larger at n = 3. Between n = 0.37 and n = 1.3, methane is the more unstable
@@ -387,7 +388,42 @@ the fuels is unchanged for all the flame speeds tested: the lowest hydrogen
 threshold (0.60) stays above the highest methane one (0.39). As shown above,
 this does not hold for other values of d.
 
-### 3.9 Rayleigh criterion check
+### 3.9 Higher acoustic modes
+
+The thresholds of Sections 3.6 to 3.8 are those of the fundamental mode. The
+flame gain n is the same at every frequency and the model has no damping, so
+higher modes can become unstable earlier. The first six modes (up to about
+940 Hz) were followed by continuation in n, each started from its acoustic
+eigenfrequency f_j = (2j − 1) c / (4L) at n = 0.005, with the branch check
+of Section 3.4 (`scripts/mode_spectrum.py`).
+
+| Mode | f₀ [Hz] | CH4: σ(n=1) | CH4: first instability | H2: σ(n=1) | H2: first instability |
+|---|---|---|---|---|---|
+| 1 | 85.75 | +27.1 | n = 0.369 | −3.9 | n = 1.029 |
+| 2 | 257.25 | +37.7 | all n ≥ 0.005 | −17.1 | none up to n = 3 |
+| 3 | 428.75 | +41.5 | all n ≥ 0.005 | −26.3 | none up to n = 3 |
+| 4 | 600.25 | +32.2 | n = 0.020 | +18.0 | **n = 0.843** |
+| 5 | 771.75 | +39.4 | all n ≥ 0.005 | −28.6 | n = 1.189 |
+| 6 | 943.25 | +19.3 | n = 0.297 | −8.3 | n = 2.797 |
+
+<img src="../results/figures/mode_spectrum.png" alt="Eigenmode spectrum at n = 1" width="600">
+
+<img src="../results/figures/mode_growth_vs_n.png" alt="Growth rate of each mode versus n" width="700">
+
+For methane, three higher modes are unstable from n = 0.005, the smallest
+value tested, so the system has no stable range at this resolution. For
+hydrogen the first instability is the 600 Hz mode at n = 0.84, before the
+fundamental (1.03). The order of the fuels at d = 10 mm is unchanged
+(hydrogen becomes unstable later), but the fundamental-mode thresholds of
+Section 3.7 are not the stability limit of the system.
+
+Real flames respond with a decreasing gain at high frequency, and acoustic
+losses increase with frequency; neither is in the model, so the
+high-frequency instabilities found here are probably overstated. Focusing on
+the fundamental mode is a modelling choice, not a result about the full
+system.
+
+### 3.10 Rayleigh criterion check
 
 The Rayleigh index Re(p'* · Q') was computed at the flame location for the
 eigenmode at n = 2, normalised to p = 1 at the closed end. Only its sign is
@@ -404,7 +440,7 @@ sign of σ must equal the sign of the Rayleigh index. The agreement is
 therefore also a consistency check of the implementation, covered by the
 test suite.
 
-### 3.10 Limitations
+### 3.11 Limitations
 
 - **No damping.** The open end is idealised and no viscous or thermal losses
   are modelled. The flame alone sets the stability boundary, which is why
@@ -426,7 +462,9 @@ test suite.
 - **Simple flame response.** A single compact flame with a frequency-
   independent gain n and a pure delay τ. A measured transfer function would
   have a frequency-dependent gain and phase.
-- **Fundamental mode only.** Higher modes are not tracked.
+- **Fundamental-mode thresholds are not system thresholds.** With a constant
+  gain and no damping, higher modes become unstable earlier (Section 3.9).
+  The thresholds of Sections 3.6 to 3.8 describe the fundamental mode only.
 - **No external validation of the coupled model.** It is verified against
   analytical limits (Section 3.6) but not compared with a published or
   measured thermoacoustic case.
