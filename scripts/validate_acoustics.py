@@ -1,7 +1,26 @@
+"""
+Acoustic-only validation: eigenfrequencies of a closed-open duct.
+
+Sweeps the frequency of a 1 m duct (closed at one end, open at the other)
+and locates the minima of the characteristic value. The numerical
+eigenfrequencies are compared to the analytical solution
+f_n = (2n - 1) * c / (4 L).
+
+The parameters are fixed on purpose: this script validates the acoustic
+solver against a known analytical result, so they must not be edited.
+"""
+
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
+
 from thermoacoustic.acoustics import Duct, ClosedEnd, OpenEnd
 from thermoacoustic.solver import ThermoAcousticNetwork
+
+ROOT = Path(__file__).resolve().parent.parent
+FIG_DIR = ROOT / "results" / "figures"
+FIG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # CONSTANTS
@@ -24,16 +43,15 @@ for f in frequencies:
     residues.append(np.abs(network.characteristic_value(omega)))
 
 
-
 fig, ax = plt.subplots()
 ax.plot(frequencies, residues)
-ax.set_xlabel ('Frequency [Hz]')
+ax.set_xlabel('Frequency [Hz]')
 ax.set_ylabel('|Characteristic value|')
 ax.set_title('Acoustic Resonance Search')
 ax.set_yscale('log')
 ax.grid()
 
-fig.savefig("../results/figures/acoustics_validation.png", dpi=150)
+fig.savefig(FIG_DIR / "acoustics_validation.png", dpi=150)
 plt.show()
 
 

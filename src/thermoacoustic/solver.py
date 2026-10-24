@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class ThermoAcousticNetwork():
     """Assembles a sequence of acoustic elements between two boundary
        conditions and evaluates the characteristic equation of the system.
@@ -7,16 +8,25 @@ class ThermoAcousticNetwork():
        A root of the characteristic value (as a function of omega) corresponds
        to an eigenfrequency of the network.
     """
-    
+
     def __init__(self, inlet, elements, outlet):
         """Store the inlet boundary condition, the list of acoustic elements
         (traversed in order), and the outlet boundary condition."""
-        
+
         self.inlet = inlet
         self.elements = elements
-        self.outlet = outlet 
-        
-        
+        self.outlet = outlet
+
+    def inlet_state(self):
+        """State [p, u] satisfying the inlet boundary condition."""
+
+        a_in, b_in = self.inlet.coefficients()
+        if b_in != 0:
+            p, u = 1.0, -a_in / b_in
+        else:
+            p, u = 0.0, 1.0
+        return np.array([p, u], dtype=complex)
+
     def characteristic_value(self, omega):
         """Compute the residual of the outlet boundary condition for a state
         that already satisfies the inlet condition, propagated through all
@@ -25,25 +35,14 @@ class ThermoAcousticNetwork():
         A residual close to zero indicates that omega is close to an
         eigenfrequency of the network.
         """
-        
-        a_in, b_in = self.inlet.coefficients()
+
         a_out, b_out = self.outlet.coefficients()
-        
-        if b_in != 0:
-            p = 1
-            u = - a_in / b_in
-            
-        else :
-            p = 0 
-            u = 1
-            
-        state = np.array([p, u])    
-        
+
+        state = self.inlet_state()
+
         for element in self.elements:
-            T = element.transfer_matrix(omega) 
-            state = T @ state
-            
-        p_out = state[0]
-        u_out = state[1]
-        
+            state = element.transfer_matrix(omega) @ state
+
+        p_out, u_out = state
+
         return a_out * p_out + b_out * u_out

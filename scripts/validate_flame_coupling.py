@@ -24,19 +24,19 @@ from thermoacoustic.acoustics import Duct, OpenEnd, ClosedEnd
 from thermoacoustic.config import load_config, check_same_setup
 from thermoacoustic.flame import NTauFlame, CompactFlame, FlameCalibrator
 from thermoacoustic.solver import ThermoAcousticNetwork
-
+from thermoacoustic.stability import StabilityAnalyzer
 
 
 # Configuration (read from YAML)
 
-
-ROOT = Path(__file__).resolve().parent.parent   
+ROOT = Path(__file__).resolve().parent.parent  
 CONFIG_DIR = ROOT / "configs"
 FIG_DIR = ROOT / "results" / "figures"
+FIG_DIR.mkdir(parents=True, exist_ok=True)
 
 cfg_ch4 = load_config(CONFIG_DIR / "ch4_rijke.yaml")
 cfg_h2 = load_config(CONFIG_DIR / "h2_rijke.yaml")
-check_same_setup(cfg_ch4, cfg_h2)   
+check_same_setup(cfg_ch4, cfg_h2) 
 
 tube_length = cfg_ch4["geometry"]["tube_length"]
 flame_position = cfg_ch4["geometry"]["flame_position"]
@@ -47,15 +47,12 @@ characteristic_distance = cfg_ch4["flame_model"]["characteristic_distance"]
 sweep = cfg_ch4["sweep"]
 n_sweep = np.linspace(sweep["n_min"], sweep["n_max"], sweep["n_points"])
 
-
 omega_start = 2 * np.pi * 85.75 + 1j
-
 
 inlet = ClosedEnd()
 outlet = OpenEnd()
 duct_one = Duct(flame_position, speed_of_sound)
 duct_two = Duct(tube_length - flame_position, speed_of_sound)
-
 
 
 # Helpers
@@ -72,23 +69,9 @@ def sweep_growth_rate(tau_fixed, n_values, omega_guess=omega_start):
         )
         omega = newton(network.characteristic_value, omega_guess)
         omega_guess = omega
-        sigmas.append(-omega.imag)
+        sigmas.append(StabilityAnalyzer.growth_rate(omega))
         freqs.append(omega.real / (2 * np.pi))
     return np.array(sigmas), np.array(freqs)
-
-
-def rayleigh_index(omega, duct_before_flame, flame):
-    """Rayleigh index Re(p'* x Q') at the flame location.
-    Positive means heat release in phase with pressure (destabilizing)."""
-    a_in, b_in = inlet.coefficients()
-    if b_in != 0:
-        p0, u0 = 1.0, -a_in / b_in
-    else:
-        p0, u0 = 0.0, 1.0
-    state = duct_before_flame.transfer_matrix(omega) @ np.array([p0, u0], dtype=complex)
-    p_flame, u_flame = state
-    Q_prime = flame.flame_model.heat_release_response(omega) * u_flame
-    return np.real(np.conj(p_flame) * Q_prime)
 
 
 def calibrate_tau(cfg):
@@ -115,7 +98,6 @@ print(f"  CH4/air, phi={cfg_ch4['fuel']['equivalence_ratio']} : tau = {tau_ch4*1
 print(f"  H2/air,  phi={cfg_h2['fuel']['equivalence_ratio']} : tau = {tau_h2*1000:6.2f} ms")
 
 
-
 # Growth rate vs interaction index
 
 sigma_ch4, freq_ch4 = sweep_growth_rate(tau_ch4, n_sweep)
@@ -135,8 +117,9 @@ for label, tau_val, n_val in [("H2 ", tau_h2, 2.0),
     flame = CompactFlame(NTauFlame(n_val, tau_val), coupling_factor)
     network = ThermoAcousticNetwork(inlet, [duct_one, flame, duct_two], outlet)
     omega = newton(network.characteristic_value, omega_start)
-    sigma = -omega.imag
-    RI = rayleigh_index(omega, duct_one, flame)
+    analyzer = StabilityAnalyzer(network)
+    sigma = analyzer.growth_rate(omega)
+    RI = analyzer.rayleigh_index(omega, flame)
     print(f"{label}: n={n_val}, sigma={sigma:8.2f}, Rayleigh index={RI:+.5f}, "
           f"signs match: {np.sign(sigma) == np.sign(RI)}")
 

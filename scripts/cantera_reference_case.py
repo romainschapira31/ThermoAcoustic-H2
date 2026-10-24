@@ -1,3 +1,12 @@
+"""
+Reference case: laminar flame speed and adiabatic temperature of a
+stoichiometric CH4/air mixture (298.15 K, 1 atm), validated against
+Vagelopoulos & Egolfopoulos (1998).
+
+The parameters are fixed on purpose: this script reproduces a published
+reference case, so they must not be edited.
+"""
+
 import cantera as ct
 
 # CONSTANTS
