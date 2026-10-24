@@ -50,6 +50,8 @@ python scripts/phase_sensitivity.py
 python scripts/transport_check.py
 # Eigenmode spectrum: stability of the first six modes
 python scripts/mode_spectrum.py
+# Stability map of the fundamental mode in the (n, tau) plane
+python scripts/stability_map.py
 ```
 
 The two study scripts (`validate_flame_coupling.py` and
@@ -178,6 +180,14 @@ phase mechanism, and the exact threshold formula. A ranking would require a
 calibrated d or a measured flame transfer function (see
 `docs/formulation.md`, Section 3.8).
 
+The same dependence is visible in the (n, tau) plane. Each row of the map is a
+continuation along n at fixed tau, started on the acoustic fundamental. The
+zero contour agrees with the exact thresholds (median difference 2e-5 in n),
+and the bars at the right edge give the range of tau covered when d varies
+from 5 to 20 mm.
+
+<img src="results/figures/stability_map.png" alt="Stability map of the fundamental mode in the (n, tau) plane" width="650">
+
 The Rayleigh index agrees in sign with the growth rate for both fuels, as it
 must when the flame is the only source of acoustic energy.
 
@@ -185,8 +195,10 @@ must when the flame is the only source of acoustic energy.
 was discarded. Newton's method on this transcendental characteristic
 equation does not guarantee branch tracking, and the map silently drifted
 onto a spurious mode. The error was found by cross-checking against direct
-1D sweeps, which are used for all results above. See
-`docs/formulation.md` (Section 3.4) for the full diagnosis.
+1D sweeps. The corrected map above builds each row as an independent
+continuation started on the right mode, and its zero contour matches the
+exact thresholds. See `docs/formulation.md` (Section 3.4 for the diagnosis,
+Section 3.8 for the map).
 
 ## Limitations
 

@@ -241,11 +241,11 @@ column identifies the cause: the map drifts to 41–47 Hz, a spurious branch
 unrelated to the fundamental mode at 85.75 Hz, while the direct sweep stays
 at 88–115 Hz.
 
-The 2D map was discarded. All results below come from direct 1D sweeps with
-continuation along a single parameter, with the real part of ω monitored as
-a branch-tracking check. A reliable 2D map would need a method that does not
-rely on local root-finding, such as contour-integral eigenvalue methods,
-which is outside the scope of this low-order study.
+The 2D map was discarded. All results come from 1D sweeps with continuation
+along a single parameter, with the real part of ω monitored as a
+branch-tracking check. A corrected map is given in Section 3.8: each of its
+rows is an independent 1D continuation started next to the acoustic mode, and
+no root is ever carried from one row to the next.
 
 ### 3.5 Flame calibration from chemistry
 
@@ -371,6 +371,35 @@ calibrated, so this model does not support a ranking of the two fuels.
 What does not depend on d: the delay ratio of 6.2 set by the chemistry, the
 phase mechanism ωτ = mπ, and the exact threshold formula. A ranking would
 require a calibrated d or a measured flame transfer function.
+
+**Stability map.** The same dependence on τ can be seen in the (n, τ) plane.
+Each row of the map is a continuation along n at fixed τ, started from the
+acoustic fundamental at n = 0.005, where the mode sits next to its acoustic
+value. Rows are independent, so no root is carried from one τ to the next,
+which is the failure of the discarded map (Section 3.4).
+`scripts/stability_map.py` builds it.
+
+<img src="../results/figures/stability_map.png" alt="Stability map of the fundamental mode in the (n, tau) plane" width="650">
+
+All 200 rows (τ from 1 to 60 ms) were followed up to n = 3. Two of them
+(τ = 14.9 and 38.1 ms) lost the branch at the base step of 0.01 in n and were
+followed after halving it; they are followed to n = 3 with every step down to
+1/16 of the base step. The tracked frequency stays between 48 and 137 Hz. On
+the 90 rows where the mode goes from stable to unstable, the zero contour is
+compared with the exact neutral points of Section 3.6: the median difference
+in n is 2·10⁻⁵ and 95 % of the thresholds agree within 5·10⁻⁴. The largest
+difference, 2.4·10⁻³, is for a threshold at n = 0.01, within one grid step of
+the start. Away from the zero contour, the map relies on the continuity of
+the continuation, which the exact formula does not check.
+
+The map shows the periodic structure of the fundamental's stability: the sign
+of σ at small n alternates with τ with a period 2π/ω₀ = 11.7 ms (Section 3.6).
+The calibrated flames at d = 10 mm are horizontal lines, and the bars at the
+right edge give the range of τ covered when d goes from 5 to 20 mm. The bar
+of methane covers several stable and unstable bands, and that of hydrogen one
+stable and one unstable band, which is the graphic form of the statement that
+no ranking of the fuels can be inferred without a calibrated d. The map
+describes the fundamental mode only (Section 3.9).
 
 **Effect of the flame-speed discrepancy.** The computed flame speeds differ
 from the measured ones (Section 1), and τ = d / S_L inherits the difference.
