@@ -1,15 +1,21 @@
 fuel:
   name: H2
   mechanism: h2o2.yaml
+  oxidizer: "O2:1, N2:3.76"
   equivalence_ratio: 0.9
   T_fresh: 298.15
   pressure: 101325.0
 
 geometry:
   tube_length: 1.0
-  tube_diameter: 0.05
   flame_position: 0.25
+  speed_of_sound: 343.0
 
 flame_model:
-  n: 1.0
-  tau: 0.0013
+  characteristic_distance: 0.01
+  coupling_factor: 1.0
+
+sweep:
+  n_min: 0.1
+  n_max: 3.0
+  n_points: 60

@@ -33,10 +33,13 @@ python scripts/cantera_reference_case.py
 # Acoustic-only validation — validates eigenfrequencies of a closed-open duct
 python scripts/validate_acoustics.py
 
-# Full thermoacoustic coupling — n-tau flame model, stability map, Rayleigh check
+# Thermoacoustic coupling — CH4 vs H2 growth rate comparison and Rayleigh check
 python scripts/validate_flame_coupling.py
-
 ```
+
+All parameters (fuel, geometry, flame model, sweep range) are read from
+the YAML files in `configs/`. Edit these to change a case; nothing is
+hard-coded in the scripts.
 ## Testing
 
 Unit tests cover the acoustic elements (transfer matrix, boundary

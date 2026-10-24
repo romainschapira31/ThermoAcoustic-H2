@@ -60,11 +60,13 @@ class CompactFlame(AcousticElement):
 class FlameCalibrator:
     """
     """
-    def __init__(self, fuel, oxidizer, n, characteristic_distance, mechanism = 'gri30.yaml'):
+    def __init__(self, fuel, oxidizer, characteristic_distance, n=1.0,
+             mechanism='gri30.yaml', T_in=298.15, P_in=101325):
         """
         """
-        self.T_in = 298.15
-        self.P_in = 101325
+        
+        self.T_in = T_in
+        self.P_in = P_in
         self.fuel = fuel
         self.oxidizer = oxidizer
         self.n = n
