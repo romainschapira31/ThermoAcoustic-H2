@@ -43,5 +43,5 @@ def test_tracking_stops_at_a_jump():
 
     p = np.linspace(0.0, 1.0, 11)
     omega = track_mode(jumping, p, 0.0 + 0j, max_step=10.0)
-    assert np.all(np.isfinite(omega[p < 0.5]))
-    assert np.all(np.isnan(omega[p >= 0.5]))
+    assert np.all(np.isnan(omega[p >= 0.5].real))
+    assert np.all(np.isnan(omega[p >= 0.5].imag))

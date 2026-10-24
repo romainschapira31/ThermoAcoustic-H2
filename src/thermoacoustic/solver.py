@@ -61,7 +61,7 @@ def track_mode(characteristic, parameters, omega_start, max_step=10.0):
     then no longer followed and the remaining entries are NaN, as they are
     when Newton's method fails to converge.
     """
-    omegas = np.full(len(parameters), np.nan, dtype=complex)
+    omegas = np.full(len(parameters), complex(np.nan, np.nan))
     guess = omega_start
     for i, p in enumerate(parameters):
         try:
