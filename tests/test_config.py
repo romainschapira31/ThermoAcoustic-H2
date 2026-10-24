@@ -34,3 +34,11 @@ def test_check_same_setup_rejects_different_geometry():
     cfg_h2["geometry"]["tube_length"] = 2.0
     with pytest.raises(ValueError):
         check_same_setup(cfg_ch4, cfg_h2)
+        
+def test_check_same_setup_rejects_different_equivalence_ratio():
+       """A fuel comparison must be made at the same equivalence ratio."""
+       a = load_config(CONFIG_DIR / "ch4_rijke.yaml")
+       b = load_config(CONFIG_DIR / "h2_rijke.yaml")
+       b["fuel"]["equivalence_ratio"] = 0.9
+       with pytest.raises(ValueError):
+           check_same_setup(a, b)

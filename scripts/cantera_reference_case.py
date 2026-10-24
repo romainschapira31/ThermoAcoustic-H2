@@ -35,5 +35,5 @@ flame.solve(loglevel=0, auto=True)
 flame_speed = flame.velocity[0]
 T_adiabatic = flame.T[-1]
 
-print(f"The flame's speed = {flame_speed:.2f} m/s")
+print(f"The flame's speed = {flame_speed:.4f} m/s")
 print(f"The maximal temperature = {T_adiabatic:.2f} K ")

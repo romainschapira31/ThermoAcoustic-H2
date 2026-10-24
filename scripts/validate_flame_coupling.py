@@ -157,3 +157,5 @@ fig2.tight_layout()
 fig2.savefig(FIG_DIR / "fuel_comparison_frequency_vs_n.png", dpi=150)
 
 plt.show()
+
+

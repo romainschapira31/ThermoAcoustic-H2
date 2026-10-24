@@ -2,7 +2,7 @@ fuel:
   name: H2
   mechanism: h2o2.yaml
   oxidizer: "O2:1, N2:3.76"
-  equivalence_ratio: 0.9
+  equivalence_ratio: 1.0
   T_fresh: 298.15
   pressure: 101325.0
 

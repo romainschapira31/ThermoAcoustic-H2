@@ -30,6 +30,6 @@ def check_same_setup(cfg_a, cfg_b):
     for section in ("geometry", "flame_model", "sweep"):
         if cfg_a[section] != cfg_b[section]:
             raise ValueError(f"Configs differ in '{section}': comparison would be invalid")
-    for key in ("T_fresh", "pressure"):
+    for key in ("T_fresh", "pressure", "equivalence_ratio"):
         if cfg_a["fuel"][key] != cfg_b["fuel"][key]:
             raise ValueError(f"Configs differ in fuel.{key}: comparison would be invalid")

@@ -11,7 +11,8 @@ This is a personal research project exploring the coupling between acoustics
 and combustion, with a focus on what a switch to hydrogen could mean for
 combustion instabilities in aviation gas turbines. It is a low-order study,
 not a high-fidelity simulation: its value lies in the physical formulation,
-the validation of each building block, and the quality of the code.
+the verification and validation of each building block, and the quality of
+the code.
 
 ## Architecture
 
@@ -22,7 +23,8 @@ the validation of each building block, and the quality of the code.
 - `src/thermoacoustic/config.py` — YAML configuration loading and validation
 - `configs/` — one YAML file per fuel case
 - `scripts/` — validation and study scripts
-- `docs/formulation.md` — physical formulation, validation details, limitations
+- `tests/` — unit tests and analytical checks
+- `docs/formulation.md` — physical formulation, verification details, limitations
 
 ## Installation
 
@@ -36,18 +38,21 @@ pip install -e ".[dev]"
 # Flame calibration (Cantera) — validates flame speed and adiabatic temperature
 python scripts/cantera_reference_case.py
 
-# Acoustic-only validation — validates eigenfrequencies of a closed-open duct
+# Acoustic-only verification — eigenfrequencies of a closed-open duct
 python scripts/validate_acoustics.py
 
 # Thermoacoustic coupling — CH4 vs H2 growth rate comparison and Rayleigh check
 python scripts/validate_flame_coupling.py
+
+# Sensitivity of the fuel comparison to the convective length d
+python scripts/phase_sensitivity.py
 ```
 
-The coupling study (`validate_flame_coupling.py`) reads all its parameters
-(fuel, geometry, flame model, sweep range) from the YAML files in
-`configs/`. The two validation scripts reproduce fixed reference cases
-(analytical duct modes, published flame speed) and keep their parameters
-in the script by design.
+The two study scripts (`validate_flame_coupling.py` and
+`phase_sensitivity.py`) read their parameters (fuel, geometry, flame model,
+sweep range) from the YAML files in `configs/`. The two reference scripts
+reproduce fixed cases (analytical duct modes, published flame speed) and
+keep their parameters in the script by design.
 
 ## Testing
 
@@ -57,9 +62,11 @@ pytest tests/ -v
 
 The test suite covers the acoustic elements and boundary conditions, the
 solver (first eigenfrequency against the analytical closed-open duct value),
-the YAML configuration loader and its consistency checks, and the stability
+the YAML configuration loader and its consistency checks, the stability
 analysis (the sign of the Rayleigh index must match the sign of the growth
-rate).
+rate), and analytical checks of the coupled solver: the exact stability
+threshold, the first-order frequency shift, and the dependence on flame
+position.
 
 ## Results
 
@@ -71,25 +78,28 @@ p = 101325 Pa, matching the conditions of the literature references.
 
 | Quantity | This work | Reference |
 |---|---|---|
-| Laminar flame speed | 0.38 m/s | 0.36 m/s ± 0.017 m/s (Vagelopoulos & Egolfopoulos, 1998) |
-| Adiabatic flame temperature | 2229.5 K | 2224.3 K (independent Cantera/GRI-Mech 3.0 cross-check, arXiv:2503.11826) |
+| Laminar flame speed | 0.375 m/s | 0.36 ± 0.017 m/s (Vagelopoulos & Egolfopoulos, 1998) |
+| Adiabatic flame temperature | 2229.5 K | 2224.3 K (same mechanism and software, arXiv:2503.11826) |
 
 > Vagelopoulos, C. M., & Egolfopoulos, F. N. (1998). Direct experimental
 > determination of laminar flame speeds. *Proceedings of the Combustion
-> Institute*, 27, 513-519.
+> Institute*, 27, 513-519. Value as tabulated in the FFCM-1 flame speed
+> compilation (the original paper was not accessed).
 
-The ~5.6% discrepancy on flame speed is consistent with GRI-Mech 3.0's known
-tendency to slightly overpredict flame speed near stoichiometry, and with
-the typical scatter between experimental techniques (±2-3 cm/s). The
-adiabatic temperature agrees within 0.2%. Grid independence was verified
+The computed flame speed is 4.3% above the measurement (+1.5 cm/s), within
+its quoted uncertainty. The adiabatic temperature differs by 0.23% from an
+independent calculation using the same mechanism and software, which checks
+the implementation rather than the mechanism. Grid independence was verified
 through a convergence study (34 → 139 → 253 points); see
-`docs/formulation.md` for the full table.
+`docs/formulation.md` for the full table. The hydrogen flame speed is not
+compared with a measurement.
 
-### Acoustic network validation
+### Acoustic network verification
 
-The transfer-matrix acoustic solver was validated against the analytical
+The transfer-matrix acoustic solver was verified against the analytical
 eigenfrequencies of a closed-open duct (L = 1 m, c = 343 m/s): all 6
-computed modes agree with theory within 0.3%.
+computed modes agree with theory within 0.3%, the residual being the 1 Hz
+resolution of the frequency sweep.
 
 ### Thermoacoustic coupling and fuel comparison
 
@@ -98,31 +108,52 @@ network, making the eigenvalue problem complex: each mode carries a growth
 rate sigma = -Im(omega), with sigma > 0 indicating instability.
 
 The time delay is estimated as a convective transit time, tau = d / S_L,
-with S_L from Cantera and d = 10 mm:
+with S_L from Cantera and d = 10 mm, for both fuels at phi = 1.0:
 
-| Fuel | phi | S_L [m/s] | tau [ms] |
+| Fuel | S_L [m/s] | tau [ms] |
+|---|---|---|
+| CH4/air | 0.375 | 26.64 |
+| H2/air | 2.311 | 4.33 |
+
+The ratio of the two delays (6.2) is fixed by the chemistry. The
+interaction index n and the length d are **not** calibrated.
+
+**Exact stability threshold.** A neutral mode requires omega·tau = m·pi,
+which gives the critical interaction index in closed form. The solver
+reproduces it to the digits shown:
+
+| Fuel | f at threshold [Hz] | n_c (exact) | n_c (solver) |
 |---|---|---|---|
-| CH4/air | 1.0 | 0.38 | 26.64 |
-| H2/air | 0.9 | 2.00 | 4.99 |
+| CH4/air | 93.8 | 0.369 | 0.369 |
+| H2/air | 115.6 | 1.029 | 1.029 |
 
-The interaction index n is **not** calibrated: it is swept as a free
-parameter. Sweeping n at each fuel's calibrated tau gives:
+Instability sets in when the flame has pulled the mode frequency up to
+omega·tau = m·pi, starting from the acoustic fundamental at 85.75 Hz.
+
+Sweeping n at each fuel's calibrated tau gives:
 
 <img src="results/figures/fuel_comparison_sigma_vs_n.png" alt="Growth rate vs interaction index for CH4 and H2" width="600">
 
-Both fuels become unstable above a threshold. Hydrogen crosses later
-(n ~ 0.6 against n ~ 0.4 for methane) but its growth rate rises roughly
-three times faster once unstable (+167 against +58 1/s at n = 3). In
-engineering terms: in this configuration hydrogen is not more prone to
-instability, but the instability it produces is considerably more violent.
-
-The frequency of the tracked mode stays smooth and monotonic along both
-sweeps, confirming that the solver remains on the fundamental mode:
+Both fuels become unstable above their threshold. At d = 10 mm, hydrogen
+crosses later (n = 1.03 against 0.37 for methane) but its growth rate then
+rises faster: it overtakes methane's above n ≈ 1.3 and reaches +169 against
++58 1/s at n = 3. The frequency of the tracked mode stays smooth and
+monotonic along both sweeps, confirming that the solver remains on the
+fundamental mode:
 
 <img src="results/figures/fuel_comparison_frequency_vs_n.png" alt="Mode frequency along the sweep" width="600">
 
-The Rayleigh index, computed from the pressure and heat-release fluctuations
-of the eigenmode, agrees in sign with the growth rate for both fuels.
+**What does not carry over.** These statements hold for d = 10 mm. The
+order in which the two fuels become unstable depends on d: at d = 7.5 mm
+methane is unstable at small n while hydrogen is not, and at d = 15 mm the
+reverse holds. With d uncalibrated, this model does not support a ranking of
+the two fuels. What is robust is the delay ratio set by the chemistry, the
+phase mechanism, and the exact threshold formula. A ranking would require a
+calibrated d or a measured flame transfer function (see
+`docs/formulation.md`, Section 3.8).
+
+The Rayleigh index agrees in sign with the growth rate for both fuels, as it
+must when the flame is the only source of acoustic energy.
 
 **Methodological note.** An initial attempt at a 2D (n, tau) stability map
 was discarded. Newton's method on this transcendental characteristic
@@ -139,12 +170,17 @@ This is a low-order model, and its quantitative reach is limited:
   the flame alone sets the stability boundary. Realistic losses would raise
   both thresholds and could change their ordering.
 - **Uniform mean temperature.** Both ducts share the same speed of sound,
-  whereas the temperature jumps by a factor of ~7 across a real flame.
+  whereas the temperature rises by a factor of ~7.5 across a real flame.
 - **Uncalibrated parameters.** The interaction index n, the coupling factor
-  and the convective length d are not derived from physics. The absolute
-  position of the thresholds therefore carries no quantitative weight; only
-  the comparison between the two fuels, computed under identical
-  assumptions, is meaningful.
+  (only their product matters) and the convective length d are not derived
+  from physics. Absolute thresholds carry no quantitative weight, and the
+  fuel comparison depends on d.
+- **Unvalidated hydrogen flame speed, one equivalence ratio.** Only phi = 1.0
+  is reported, and the hydrogen flame speed is not compared with a
+  measurement.
+- **No external validation of the coupled model.** It is verified against
+  analytical limits but not compared with a published or measured
+  thermoacoustic case.
 
 See `docs/formulation.md` for the derivation, the calibration, and the
 complete list of assumptions.
