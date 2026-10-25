@@ -1,1 +1,3 @@
-"""Low-order thermoacoustic stability modelling of premixed flames."""__version__ = "0.1.0"
+"""Low-order thermoacoustic stability modelling of premixed flames."""
+
+__version__ = "0.1.0"
