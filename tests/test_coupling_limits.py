@@ -21,10 +21,10 @@ C = 343.0
 L1, L2 = 0.25, 0.75
 L = L1 + L2
 COUPLING = 1.0
-OMEGA0 = np.pi * C / (2 * L)            # acoustic fundamental, k0 L = pi/2
+OMEGA0 = np.pi * C / (2 * L)       
 
-TAU_H2 = 4.99e-3      # s, calibrated H2/air delay
-TAU_CH4 = 26.64e-3    # s, calibrated CH4/air delay
+TAU_H2 = 4.326e-3  
+TAU_CH4 = 26.64e-3   
 
 
 def build(n, tau, l1=L1):
@@ -47,8 +47,6 @@ def neutral_point(tau, m):
     return omega, (-1) ** m * xi / COUPLING
 
 
-# Neutral points lying on the fundamental branch (frequency close to the
-# acoustic fundamental): m = 1 for hydrogen, m = 5 for methane.
 FUNDAMENTAL_NEUTRAL = [("H2", TAU_H2, 1), ("CH4", TAU_CH4, 5)]
 
 

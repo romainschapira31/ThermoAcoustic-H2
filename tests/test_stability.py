@@ -21,7 +21,7 @@ def build(n, tau):
 def test_rayleigh_sign_matches_growth_rate():
     """With no damping, the flame is the only energy source, so the sign
     of sigma must equal the sign of the Rayleigh index."""
-    for n, tau in [(2.0, 0.00499), (2.0, 0.02664)]:
+    for n, tau in [(2.0, 0.004326), (2.0, 0.02664)]:
         network, flame = build(n, tau)
         omega = newton(network.characteristic_value, OMEGA_START)
         analyzer = StabilityAnalyzer(network)

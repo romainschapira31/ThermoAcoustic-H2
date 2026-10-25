@@ -5,10 +5,11 @@ Computes the growth rate of the fundamental acoustic mode as a function of
 the flame interaction index n, for CH4/air and H2/air flames whose time
 delay tau is calibrated from Cantera laminar flame speeds.
 
-Eigenfrequencies are obtained by direct root-finding on the characteristic
-equation, with progressive continuation of the initial guess along n. The
-real part of omega is tracked throughout to confirm that the solver stays
-on the fundamental mode branch.
+The fundamental mode is followed by continuation along n, started from the
+acoustic eigenfrequency of the tube; if the root jumps onto another branch,
+the script stops with an error. The frequency of the tracked mode is plotted
+as a branch-tracking check, and the Rayleigh index is compared with the sign
+of the growth rate.
 
 All physical and numerical parameters are read from the YAML files in
 configs/.
@@ -23,20 +24,20 @@ from scipy.optimize import newton
 from thermoacoustic.acoustics import Duct, OpenEnd, ClosedEnd
 from thermoacoustic.config import load_config, check_same_setup
 from thermoacoustic.flame import NTauFlame, CompactFlame, FlameCalibrator
-from thermoacoustic.solver import ThermoAcousticNetwork
+from thermoacoustic.solver import ThermoAcousticNetwork, track_mode
 from thermoacoustic.stability import StabilityAnalyzer
 
 
 # Configuration (read from YAML)
 
-ROOT = Path(__file__).resolve().parent.parent  
+ROOT = Path(__file__).resolve().parent.parent   # scripts/ -> project root
 CONFIG_DIR = ROOT / "configs"
 FIG_DIR = ROOT / "results" / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
 cfg_ch4 = load_config(CONFIG_DIR / "ch4_rijke.yaml")
 cfg_h2 = load_config(CONFIG_DIR / "h2_rijke.yaml")
-check_same_setup(cfg_ch4, cfg_h2) 
+check_same_setup(cfg_ch4, cfg_h2)   # geometry, numerics and phi must match
 
 tube_length = cfg_ch4["geometry"]["tube_length"]
 flame_position = cfg_ch4["geometry"]["flame_position"]
@@ -47,7 +48,9 @@ characteristic_distance = cfg_ch4["flame_model"]["characteristic_distance"]
 sweep = cfg_ch4["sweep"]
 n_sweep = np.linspace(sweep["n_min"], sweep["n_max"], sweep["n_points"])
 
-omega_start = 2 * np.pi * 85.75 + 1j
+# Acoustic fundamental of the closed-open tube, where the root search starts
+omega_acoustic = np.pi * speed_of_sound / (2 * tube_length)
+omega_start = omega_acoustic + 1j
 
 inlet = ClosedEnd()
 outlet = OpenEnd()
@@ -57,35 +60,24 @@ duct_two = Duct(tube_length - flame_position, speed_of_sound)
 
 # Helpers
 
-def sweep_growth_rate(tau_fixed, n_values, omega_guess=omega_start):
-    """Compute sigma(n) and f(n) at fixed tau, by direct root-finding
-    with continuation of the initial guess."""
-    sigmas, freqs = [], []
-    for n in n_values:
-        network = ThermoAcousticNetwork(
-            inlet,
-            [duct_one, CompactFlame(NTauFlame(n, tau_fixed), coupling_factor), duct_two],
-            outlet,
-        )
-        omega = newton(network.characteristic_value, omega_guess)
-        omega_guess = omega
-        sigmas.append(StabilityAnalyzer.growth_rate(omega))
-        freqs.append(omega.real / (2 * np.pi))
-    return np.array(sigmas), np.array(freqs)
+def sweep_growth_rate(tau_fixed, n_values):
+    """Growth rate sigma(n) and frequency f(n) of the fundamental at fixed tau,
+    by continuation along n. Raises if the branch is lost."""
+    def characteristic(n):
+        flame = CompactFlame(NTauFlame(n, tau_fixed), coupling_factor)
+        network = ThermoAcousticNetwork(inlet, [duct_one, flame, duct_two], outlet)
+        return network.characteristic_value
+
+    omega = track_mode(characteristic, n_values, omega_start)
+    if not np.all(np.isfinite(omega)):
+        raise RuntimeError("The fundamental mode could not be followed over the whole sweep")
+    return StabilityAnalyzer.growth_rate(omega), omega.real / (2 * np.pi)
 
 
 def calibrate_tau(cfg):
     """Compute the flame time delay tau = d / S_L from a fuel configuration."""
-    fuel = cfg["fuel"]
-    calibrator = FlameCalibrator(
-        fuel=fuel["name"],
-        oxidizer=fuel["oxidizer"],
-        characteristic_distance=cfg["flame_model"]["characteristic_distance"],
-        mechanism=fuel["mechanism"],
-        T_in=fuel["T_fresh"],
-        P_in=fuel["pressure"],
-    )
-    return calibrator.calibrate(phi=fuel["equivalence_ratio"]).tau
+    calibrator = FlameCalibrator.from_config(cfg)
+    return calibrator.calibrate(phi=cfg["fuel"]["equivalence_ratio"]).tau
 
 
 # Flame calibration from Cantera
@@ -147,7 +139,7 @@ fig.savefig(FIG_DIR / "fuel_comparison_sigma_vs_n.png", dpi=150)
 fig2, ax2 = plt.subplots()
 ax2.plot(n_sweep, freq_ch4, color='tab:blue', lw=2, label='CH$_4$/air')
 ax2.plot(n_sweep, freq_h2, color='tab:orange', lw=2, label='H$_2$/air')
-ax2.axhline(85.75, color='grey', ls=':', lw=1.5, label='Acoustic-only mode')
+ax2.axhline(omega_acoustic / (2 * np.pi), color='grey', ls=':', lw=1.5, label='Acoustic-only mode')
 ax2.set_xlabel('Interaction index $n$ [-]')
 ax2.set_ylabel('Mode frequency $f$ [Hz]')
 ax2.set_title('Mode frequency along the sweep (branch tracking check)')
@@ -157,5 +149,3 @@ fig2.tight_layout()
 fig2.savefig(FIG_DIR / "fuel_comparison_frequency_vs_n.png", dpi=150)
 
 plt.show()
-
-

@@ -58,13 +58,21 @@ class CompactFlame(AcousticElement):
         return T
 
 class FlameCalibrator:
+    """Calibrate the n-tau flame model of a fuel from a Cantera flame.
+
+    The time delay is the convective transit time tau = d / S_L, with S_L the
+    laminar flame speed of the fresh mixture (freely propagating premixed
+    flame, Cantera's default mixture-averaged transport) and d a
+    characteristic length. The interaction index n is not calibrated: it is
+    stored as given.
     """
-    """
+
     def __init__(self, fuel, oxidizer, characteristic_distance, n=1.0,
-             mechanism='gri30.yaml', T_in=298.15, P_in=101325):
-        """
-        """
-        
+                 mechanism='gri30.yaml', T_in=298.15, P_in=101325):
+        """Store the fuel, oxidizer, mechanism, fresh-gas state (T_in [K],
+        P_in [Pa]), the characteristic distance d [m] and the interaction
+        index n of the returned model."""
+
         self.T_in = T_in
         self.P_in = P_in
         self.fuel = fuel
@@ -74,7 +82,7 @@ class FlameCalibrator:
         self.width = 0.03
         self.refine_criteria = {"ratio": 3, "slope": 0.05, "curve": 0.05}
         self.mechanism = mechanism
-        
+
     @classmethod
     def from_config(cls, cfg):
         """Build a calibrator from a fuel configuration (see thermoacoustic.config)."""
@@ -87,30 +95,23 @@ class FlameCalibrator:
             T_in=fuel["T_fresh"],
             P_in=fuel["pressure"],
         )
-    
-    
 
-        
     def compute_flame_velocity(self, phi):
-        """
-        """
-        
+        """Return the laminar flame speed S_L [m/s] at equivalence ratio phi."""
+
         gas = ct.Solution(self.mechanism)
         gas.TP = self.T_in, self.P_in
         gas.set_equivalence_ratio(phi, self.fuel, self.oxidizer)
-        flame = ct.FreeFlame(gas, width = self.width)
+        flame = ct.FreeFlame(gas, width=self.width)
         flame.set_refine_criteria(**self.refine_criteria)
         flame.solve(loglevel=0, auto=True)
-        flame_speed = flame.velocity[0]
-        return flame_speed
-    
+        return flame.velocity[0]
+
     def calibrate(self, phi):
-        """
-        """
+        """Return an NTauFlame with tau = d / S_L at equivalence ratio phi."""
+
         flame_speed = self.compute_flame_velocity(phi)
         tau = self.characteristic_distance / flame_speed
-        flame_model = NTauFlame(self.n, tau)
-        return flame_model
-        
+        return NTauFlame(self.n, tau)
         
         

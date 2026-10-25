@@ -18,7 +18,8 @@ class Duct(AcousticElement):
     """A straight duct of uniform cross-section, with no mean flow and no losses."""
     
     def __init__(self, length, speed_of_sound):
-        """Store the duct's physical properties (length, speed of sound, density)."""
+        """Store the duct's length and speed of sound. The density is fixed at
+          1.2 kg/m3; it cancels in the eigenvalue problem of the configurations studied."""
         
         self.length = length
         self.speed_of_sound =speed_of_sound

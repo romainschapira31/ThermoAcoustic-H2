@@ -4,7 +4,8 @@ transport settings, for CH4/air and H2/air at phi = 1.0, 298.15 K, 1 atm.
 
 It explains why the computed hydrogen flame speed (Cantera's default
 mixture-averaged transport) is above the compiled measurement, and shows
-that the numerical settings play no role. The parameters are fixed on
+that the numerical settings, the size of the mechanism and the 0.15 K
+difference with the compilations play no role. The parameters are fixed on
 purpose: this script reproduces a reference comparison.
 """
 
@@ -21,16 +22,18 @@ VARIANTS = [
     ("Wider domain (0.10 m)", dict(width=0.10)),
     ("Multicomponent transport", dict(transport="multicomponent")),
     ("Multicomponent transport + thermal diffusion (Soret)", dict(transport="multicomponent", soret=True)),
+    ("Full GRI-Mech 3.0 (gri30.yaml)", dict(mechanism="gri30.yaml")),
+    ("Fresh gas at 298.0 K (as in the compilations)", dict(temperature=298.0)),
 ]
 
 
-def flame_speed(mechanism, fuel, width=0.03, ratio=3, slope=0.05, curve=0.05,
-                transport=None, soret=False):
+def flame_speed(mechanism, fuel, temperature=298.15, width=0.03, ratio=3, slope=0.05,
+                curve=0.05, transport=None, soret=False):
     """Laminar flame speed [m/s] of a stoichiometric fuel/air mixture."""
     gas = ct.Solution(mechanism)
     if transport:
         gas.transport_model = transport
-    gas.TP = 298.15, ct.one_atm
+    gas.TP = temperature, ct.one_atm
     gas.set_equivalence_ratio(1.0, fuel, "O2:1, N2:3.76")
     flame = ct.FreeFlame(gas, width=width)
     flame.set_refine_criteria(ratio=ratio, slope=slope, curve=curve)
@@ -39,8 +42,11 @@ def flame_speed(mechanism, fuel, width=0.03, ratio=3, slope=0.05, curve=0.05,
     return flame.velocity[0]
 
 
-results = {name: [flame_speed(case["mechanism"], case["fuel"], **kw) for _, kw in VARIANTS]
-           for name, case in CASES.items()}
+results = {
+    name: [flame_speed(**{"mechanism": case["mechanism"], "fuel": case["fuel"], **settings})
+           for _, settings in VARIANTS]
+    for name, case in CASES.items()
+}
 
 print(f"{'Setting':56s} {'CH4/air':>9s} {'H2/air':>9s}   [m/s]")
 for i, (label, _) in enumerate(VARIANTS):

@@ -66,8 +66,8 @@ found_frequencies = frequencies[minima_indices]
 n_modes = len(found_frequencies)
 analytical_frequencies = [(2*n - 1) * speed_of_sound / (4 * tube_length) for n in range(1, n_modes + 1)]
 
-print("Numerical eigenfrequencies (Hz):  ", [round(f, 2) for f in found_frequencies])
+print("Numerical eigenfrequencies (Hz):  ", [round(float(f), 2) for f in found_frequencies])
 print("Analytical eigenfrequencies (Hz): ", [round(f, 2) for f in analytical_frequencies])
 
 errors = [abs(f_num - f_ana) / f_ana * 100 for f_num, f_ana in zip(found_frequencies, analytical_frequencies)]
-print("Relative errors (%):              ", [round(e, 3) for e in errors])
+print("Relative errors (%):              ", [round(float(e), 3) for e in errors])
