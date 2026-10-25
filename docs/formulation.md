@@ -2,15 +2,20 @@
 
 This document states the physical model behind the code, the checks each
 building block has passed, and the limits of what the results can claim.
+Section 4 lists the script or test that reproduces each result.
 
 Two kinds of checks are distinguished throughout. **Verification** asks
 whether the code solves the model's equations correctly (analytical
 solutions, limiting cases, convergence). **Validation** asks whether the
-model represents reality (measurements, published results). The flame speeds are compared with compiled measurements: methane agrees
+model represents reality (measurements, published results).
+
+The flame speeds are compared with compiled measurements: methane agrees
 within the quoted uncertainty, and the 9.5 % excess of hydrogen is explained
-by the transport model (Section 1). The acoustic and coupled solvers are verified against analytical
-results. The coupled model as a whole has not been validated against an
-external thermoacoustic reference.
+by the transport model (Section 1). The acoustic and coupled solvers are
+verified against analytical results. The coupled model as a whole has not
+been validated against an external thermoacoustic reference: the equations
+of Sections 2 and 3 are derived in this document and checked against
+analytical solutions, and no published thermoacoustic result is reproduced.
 
 ## 1. Chemical kinetics and laminar flame calibration
 
@@ -20,7 +25,8 @@ premixed flame (`FreeFlame`). GRI-Mech 3.0 (`gri30.yaml`) is used for
 methane and the `h2o2.yaml` mechanism shipped with Cantera for hydrogen.
 
 All calculations use fresh gas at T = 298.15 K (25 °C) and p = 1 atm
-(101325 Pa), the standard conditions of the combustion literature.
+(101325 Pa), which match the conditions of the compiled measurements used
+for comparison (298 K, 1 atm).
 
 Only one quantity is carried from the chemistry into the thermoacoustic
 model: S_L, which sets the flame time delay τ (Section 3.5).
@@ -40,19 +46,21 @@ model: S_L, which sets the flame time delay τ (Section 3.5).
 
 ### Grid convergence study
 
-The study was run at T = 300 K, before the fresh-gas conditions were aligned
-with the literature (298.15 K). The reference case above was then recomputed
-at 298.15 K on the converged 253-point grid.
+The refinement criteria of the reference case are compared with the Cantera
+default (`scripts/grid_convergence.py`, 298.15 K):
 
 | Grid points | Refinement criteria | S_L [m/s] | Adiabatic T [K] |
 |---|---|---|---|
-| 34 | Cantera default | 0.42 | 2225.8 |
-| 139 | ratio=3, slope=curve=0.1 | 0.38 | 2229.3 |
-| 253 | ratio=3, slope=curve=0.05 | 0.38 | 2230.4 |
+| 34 | Cantera default | 0.415 | 2224.9 |
+| 139 | ratio=3, slope=curve=0.1 | 0.379 | 2228.4 |
+| 253 | ratio=3, slope=curve=0.05 | 0.375 | 2229.5 |
 
-S_L is identical between the 139- and 253-point grids to the two digits
-recorded, which confirms grid independence. The default criteria (34
-points) under-resolve the flame front and overpredict S_L by about 10 %.
+S_L decreases by 8.7 % from 34 to 139 points, then by 0.9 % from 139 to 253
+points. Stricter criteria (slope = curve = 0.03, `scripts/transport_check.py`)
+change it by less than 0.5 % more, so the residual grid error of the
+reference case is of the order of 0.5 %, an order of magnitude below its
+4.3 % difference with the measurement. The default criteria (34 points)
+under-resolve the flame front and overpredict S_L by about 10 %.
 
 The adiabatic temperature varies by 0.2 % across the three grids. It is a
 global energy-balance quantity, nearly independent of the local
@@ -62,12 +70,12 @@ the thin flame front, which require a finer mesh.
 ### Comparison with measurements
 
 **Methane.** For CH4/air at φ = 1.0, 298 K and 1 atm, a compilation of
-twelve experimental studies gives S_L = 0.36 ± 0.017 m/s (Reference 1, which
-includes Vagelopoulos & Egolfopoulos, 1998). The computed value, 0.375 m/s,
-is 4.3 % higher (+1.5 cm/s), within the quoted uncertainty.
+twelve experimental studies gives S_L = 0.36 ± 0.017 m/s (Reference 1). The
+computed value, 0.375 m/s, is 4.3 % higher (+1.5 cm/s), within the quoted
+uncertainty.
 
 **Hydrogen.** For H2/air at φ = 1.0, 298 K and 1 atm, a compilation of nine
-studies gives S_L = 2.112 ± 0.110 m/s (Reference 5). The computed value,
+studies gives S_L = 2.112 ± 0.110 m/s (Reference 4). The computed value,
 2.311 m/s, is 9.5 % higher (+20 cm/s), 1.8 times the quoted uncertainty.
 
 Several explanations were tested (`scripts/transport_check.py`):
@@ -79,23 +87,23 @@ Several explanations were tested (`scripts/transport_check.py`):
 | Wider domain (0.10 m) | 0.376 | 2.313 |
 | Multicomponent transport | 0.377 | 2.270 |
 | Multicomponent transport + thermal diffusion (Soret) | 0.372 | 2.088 |
+| Full GRI-Mech 3.0 (`gri30.yaml`) | 0.375 | 2.311 |
+| Fresh gas at 298.0 K (as in the compilations) | 0.375 | 2.310 |
 | Compiled measurement | 0.360 ± 0.017 | 2.112 ± 0.110 |
 
-Numerical settings change S_L by less than 0.5 %, and `h2o2.yaml` (the
+Numerical settings change S_L by less than 0.5 %. `h2o2.yaml` (the
 hydrogen-oxygen submechanism of GRI-Mech 3.0) gives the same value as the
-full GRI-Mech 3.0 (2.311 m/s), so the gap is neither a resolution nor a
-mechanism-size effect. The transport model is what matters for hydrogen:
-with multicomponent transport and thermal diffusion, the computed value is
-1.1 % below the measurement, within its uncertainty. Hydrogen is very light
-and diffuses much faster than the other species, which is the likely reason
-for this sensitivity. For methane, the transport model changes S_L by about
-1 %. Only one mechanism was tested.
+full GRI-Mech 3.0, so the gap is neither a resolution nor a mechanism-size
+effect, and the 0.15 K difference between the compilations (298.0 K) and the
+calculations (298.15 K) changes S_L by less than 0.1 %. The transport model
+is what matters for hydrogen: with multicomponent transport and thermal
+diffusion, the computed value is 1.1 % below the measurement, within its
+uncertainty. For methane, the transport model changes S_L by about 1 %. Only
+one mechanism was tested.
 
 The project keeps Cantera's default mixture-averaged transport for both
 fuels, so that they are treated identically. The effect of the more complete
-model on the stability thresholds is given in Section 3.8. The 0.15 K
-difference between 298.0 K (compilations) and 298.15 K (calculations)
-changes S_L by less than 0.1 %.
+model on the stability thresholds is given in Section 3.8.
 
 ### Cross-check of the adiabatic temperature
 
@@ -122,7 +130,11 @@ inlet to the state at its outlet through a 2x2 transfer matrix:
 [u]_out = [ -i sin(kL) / Z    cos(kL)     ] [u]_in
 ```
 
-with k = ω/c the wavenumber and Z = ρc the characteristic impedance.
+with k = ω/c the wavenumber and Z = ρc the characteristic impedance. The
+density is fixed at ρ = 1.2 kg/m³ in the code. It does not enter the
+eigenfrequencies of the closed-open configurations studied (it cancels in
+the characteristic equation); it only sets the arbitrary scale of the
+velocity in the eigenmode.
 
 Boundary conditions take the form a·p + b·u = 0:
 
@@ -159,6 +171,11 @@ resolution, not the accuracy of the solver, which is refined by root-finding
 in Section 3.3. This verifies the acoustic building block in isolation.
 
 ## 3. Flame response model and thermoacoustic coupling
+
+All coupled calculations use the closed-open tube of Section 2 with a
+compact flame at x = L1: L = 1 m, L1 = 0.25 m, speed of sound c = 343 m/s
+and density 1.2 kg/m³ on both sides of the flame (`configs/*.yaml`). The
+inlet is a rigid wall and the outlet an idealised open end.
 
 ### 3.1 Crocco's n-τ model
 
@@ -199,8 +216,11 @@ For ξ = 0 this is cos(kL) = 0, the acoustic eigenfrequencies.
 Eigenfrequencies of the coupled system are complex. With the exp(iωt)
 convention, a mode evolves as exp(σt) with σ = −Im(ω): σ > 0 is unstable,
 σ < 0 is stable. Roots are found with Newton's method
-(`scipy.optimize.newton`), started near the acoustic-only eigenfrequency and
-updated progressively along a parameter sweep.
+(`scipy.optimize.newton`) by continuation along a parameter sweep: each root
+is searched from the previous one, starting from the acoustic eigenfrequency
+(`track_mode` in `solver.py`). `track_mode` stops following a mode when a
+root moves by more than 10 rad/s between two consecutive steps, and returns
+NaN from there on.
 
 ### 3.3 Consistency check: n = 0
 
@@ -241,11 +261,15 @@ column identifies the cause: the map drifts to 41–47 Hz, a spurious branch
 unrelated to the fundamental mode at 85.75 Hz, while the direct sweep stays
 at 88–115 Hz.
 
-The 2D map was discarded. All results come from 1D sweeps with continuation
-along a single parameter, with the real part of ω monitored as a
-branch-tracking check. A corrected map is given in Section 3.8: each of its
-rows is an independent 1D continuation started next to the acoustic mode, and
-no root is ever carried from one row to the next.
+The 2D map was discarded; its code is not kept in the repository, so this
+table is a record of the diagnosis. All results come from 1D sweeps with
+continuation along a single parameter (`track_mode`), with the frequency of
+the tracked mode monitored as an additional check. The jump detector alone
+would not have caught the gradual drift above: what validates the sweeps is
+their agreement with the exact thresholds of Section 3.6. A corrected map is
+given in Section 3.8: each of its rows is an independent 1D continuation
+started next to the acoustic mode, and no root is ever carried from one row
+to the next.
 
 ### 3.5 Flame calibration from chemistry
 
@@ -263,11 +287,12 @@ taken as 10 mm for both fuels.
 | CH4/air | 1.0 | 0.375 | 26.64 |
 | H2/air | 1.0 | 2.311 | 4.33 |
 
-The ratio τ(CH4)/τ(H2) = S_L(H2)/S_L(CH4) = 6.2 (5.9 with the measured flame speeds) is fixed by the chemistry
-and does not depend on d, since d is common to both fuels. Both fuels are
-computed at the same equivalence ratio, and the configuration check refuses
-a comparison at different ones. S_L is the only quantity derived from
-chemistry. The interaction index n and the length d are not calibrated.
+The ratio τ(CH4)/τ(H2) = S_L(H2)/S_L(CH4) = 6.2 (5.9 with the measured flame
+speeds) is fixed by the chemistry and does not depend on d, since d is common
+to both fuels. Both fuels are computed at the same equivalence ratio, and the
+configuration check refuses a comparison at different ones. S_L is the only
+quantity derived from chemistry. The interaction index n and the length d are
+not calibrated.
 
 ### 3.6 Analytical verification of the coupled solver
 
@@ -308,8 +333,7 @@ instability sets in when the flame has pulled the mode frequency up to
 The relative error of this expansion decreases linearly with n (about ten
 times smaller when n is divided by ten), as expected for a first-order
 result. The growth rate is proportional to sin(π L1/L), which for a
-closed-open tube peaks at L/2. In an open-open tube the same mechanism peaks
-at L/4, the classical Rijke result.
+closed-open tube peaks at L/2.
 
 Both checks verify that the code solves the model's equations correctly.
 They do not validate the physical realism of the model.
@@ -317,7 +341,8 @@ They do not validate the physical realism of the model.
 ### 3.7 Fuel comparison at d = 10 mm
 
 At each fuel's calibrated τ, the growth rate of the fundamental mode was
-computed over n in [0.1, 3.0] by direct root-finding with continuation.
+computed over n in [0.1, 3.0] (300 points) by continuation along n
+(`scripts/validate_flame_coupling.py`).
 
 <img src="../results/figures/fuel_comparison_sigma_vs_n.png" alt="Growth rate vs interaction index for CH4 and H2" width="600">
 
@@ -446,17 +471,17 @@ fundamental (1.03). The order of the fuels at d = 10 mm is unchanged
 (hydrogen becomes unstable later), but the fundamental-mode thresholds of
 Section 3.7 are not the stability limit of the system.
 
-Real flames respond with a decreasing gain at high frequency, and acoustic
-losses increase with frequency; neither is in the model, so the
-high-frequency instabilities found here are probably overstated. Focusing on
-the fundamental mode is a modelling choice, not a result about the full
-system.
+Because the model has a constant gain and no damping, the instabilities of
+the higher modes should not be read as a prediction for a real combustor.
+Focusing on the fundamental mode is a modelling choice, not a result about
+the full system.
 
 ### 3.10 Rayleigh criterion check
 
 The Rayleigh index Re(p'* · Q') was computed at the flame location for the
-eigenmode at n = 2, normalised to p = 1 at the closed end. Only its sign is
-meaningful, since the eigenmode amplitude is arbitrary.
+eigenmode at n = 2, normalised to p = 1 at the closed end
+(`scripts/validate_flame_coupling.py`). Only its sign is meaningful, since
+the eigenmode amplitude is arbitrary.
 
 | Case | σ [1/s] | Rayleigh index | Signs match |
 |---|---|---|---|
@@ -467,7 +492,7 @@ Both modes are unstable and heat release is in phase with pressure. With no
 dissipation the flame is the only source or sink of acoustic energy, so the
 sign of σ must equal the sign of the Rayleigh index. The agreement is
 therefore also a consistency check of the implementation, covered by the
-test suite.
+test suite (`tests/test_stability.py`).
 
 ### 3.11 Limitations
 
@@ -487,7 +512,9 @@ test suite.
   Cantera's default transport, the hydrogen S_L is 9.5 % above the
   measurement, and a more complete transport model removes the gap
   (Section 1). The calibration keeps the default for both fuels; switching
-  would shift the thresholds (Section 3.8). Only φ = 1.0 is reported.
+  would shift the thresholds (Section 3.8). Only φ = 1.0 is reported, the
+  point where the methane calibration is compared with a measurement; lean
+  flames are not studied.
 - **Simple flame response.** A single compact flame with a frequency-
   independent gain n and a pure delay τ. A measured transfer function would
   have a frequency-dependent gain and phase.
@@ -498,26 +525,39 @@ test suite.
   analytical limits (Section 3.6) but not compared with a published or
   measured thermoacoustic case.
 
+## 4. Reproducing the results
+
+| Result | Where |
+|---|---|
+| Section 1: reference case (S_L, adiabatic temperature) | `scripts/cantera_reference_case.py` |
+| Section 1: grid convergence | `scripts/grid_convergence.py` |
+| Section 1: numerical and transport settings | `scripts/transport_check.py` |
+| Section 2: acoustic verification | `scripts/validate_acoustics.py`, `tests/test_acoustics.py` |
+| Section 3.3: n = 0 limit | one-off check; also exercised by `tests/test_stability.py` |
+| Section 3.4: discarded 2D map | not reproducible (the code is not kept); the continuation that replaces it is tested in `tests/test_tracking.py` |
+| Section 3.6: exact threshold, first order, flame position | `tests/test_coupling_limits.py`, `tests/test_tracking.py` |
+| Sections 3.7 and 3.10: fuel comparison, Rayleigh index | `scripts/validate_flame_coupling.py`, `tests/test_stability.py` |
+| Section 3.8: sensitivity to d | `scripts/phase_sensitivity.py` |
+| Section 3.8: stability map | `scripts/stability_map.py` |
+| Section 3.8: effect of the flame speed | closed form of Section 3.6 evaluated at each S_L (no script) |
+| Section 3.9: higher modes | `scripts/mode_spectrum.py` |
+
 ## References
 
 1. Foundational Fuel Chemistry Model Version 1.0 (FFCM-1), flame speed
    target `fls_27b` (H. Wang group, Stanford): laminar flame speed of
    CH4/air at φ = 1.0, 298 K, 1 atm, 36 ± 1.7 cm/s (σ), compiled from twelve
-   experimental studies, among them Vagelopoulos, C. M., & Egolfopoulos, F.
-   N. (1998), *Proceedings of the Combustion Institute*, 27, 513–519. The
-   original papers were not accessed.
+   experimental studies. The original papers were not accessed.
+   https://web.stanford.edu/group/haiwanglab/FFCM1/Targets/fls_27b.html
 2. Adiabatic flame temperatures for oxy-methane, oxy-hydrogen, air-methane,
    and air-hydrogen stoichiometric combustion using the NASA CEARUN tool,
    GRI-Mech 3.0 reaction mechanism, and Cantera Python package.
    arXiv:2503.11826.
-3. "Adiabatic flame temperatures", lecture notes, Brigham Young University
-   (ignite.byu.edu). Complete-combustion calculation for methane/air at
-   298.15 K using the thermodynamic data of Turns (Reference 4).
-4. Turns, S. R. *An Introduction to Combustion: Concepts and Applications.*
-5. Foundational Fuel Chemistry Model Version 2 (FFCM-2), validation page
+3. "Adiabatic flame temperatures", lecture notes, Brigham Young University.
+   Complete-combustion calculation for methane/air at 298.15 K, which gives
+   2325.6 K. https://ignite.byu.edu/che522/lectures/Tadiabatic_notes
+4. Foundational Fuel Chemistry Model Version 2 (FFCM-2), validation page
    `fls_H2_1_5` (H. Wang group, Stanford): laminar flame speed of H2/air at
    φ = 1.0, 298 K, 1 atm, 211.17 ± 10.99 cm/s, compiled from nine
-   experimental studies (Tse et al. 2000; Aung et al. 1997; Vagelopoulos et
-   al. 1994; Tang et al. 2008; Hu et al. 2009; Bradley et al. 2007;
-   Lamoureux et al. 2003; Taylor 1991; Huang et al. 2006). The original
-   papers were not accessed.
+   experimental studies. The original papers were not accessed.
+   https://web.stanford.edu/group/haiwanglab/FFCM2/docs/ValidationPages/fls_H2_1_5/
